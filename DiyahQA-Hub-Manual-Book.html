@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Book — DiyahQA Hub</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Georgia', serif; color: #1a1a1a; background: #fff; font-size: 12pt; line-height: 1.7; }
+
+/* Cover */
+.cover { page-break-after: always; min-height: 100vh; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 40px; }
+.cover-logo { font-size: 72px; margin-bottom: 20px; }
+.cover h1 { font-size: 42pt; font-weight: bold; letter-spacing: 2px; margin-bottom: 8px; }
+.cover h2 { font-size: 18pt; font-weight: 300; opacity: 0.85; margin-bottom: 40px; }
+.cover-divider { width: 80px; height: 3px; background: #a78bfa; margin: 20px auto; }
+.cover-sub { font-size: 13pt; opacity: 0.8; margin-bottom: 8px; }
+.cover-version { font-size: 11pt; opacity: 0.6; margin-top: 40px; }
+
+/* Page */
+.page { page-break-before: always; padding: 50px 60px; max-width: 900px; margin: 0 auto; }
+
+/* Typography */
+h1.chapter { font-size: 26pt; color: #312e81; border-bottom: 3px solid #7c3aed; padding-bottom: 12px; margin-bottom: 24px; margin-top: 8px; }
+h2.section { font-size: 16pt; color: #4c1d95; margin-top: 28px; margin-bottom: 12px; padding-left: 12px; border-left: 4px solid #7c3aed; }
+h3.subsection { font-size: 13pt; color: #1e1b4b; margin-top: 20px; margin-bottom: 8px; font-weight: bold; }
+p { margin-bottom: 12px; text-align: justify; }
+
+/* TOC */
+.toc-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; font-size: 11pt; }
+.toc-item a { color: #312e81; text-decoration: none; }
+.toc-chapter { font-weight: bold; color: #1e1b4b; margin-top: 12px; font-size: 12pt; }
+.toc-section { padding-left: 20px; color: #555; }
+
+/* Info boxes */
+.info-box { background: #ede9fe; border-left: 4px solid #7c3aed; padding: 14px 18px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.info-box .label { font-weight: bold; color: #4c1d95; font-size: 11pt; margin-bottom: 4px; }
+.warning-box { background: #fef3c7; border-left: 4px solid #d97706; padding: 14px 18px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.warning-box .label { font-weight: bold; color: #92400e; }
+.success-box { background: #d1fae5; border-left: 4px solid #059669; padding: 14px 18px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.success-box .label { font-weight: bold; color: #065f46; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10.5pt; }
+th { background: #312e81; color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+tr:nth-child(even) td { background: #f5f3ff; }
+
+/* Steps */
+.steps { counter-reset: step; list-style: none; margin: 12px 0; }
+.steps li { counter-increment: step; padding: 8px 0 8px 48px; position: relative; border-bottom: 1px solid #f0f0f0; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 6px; width: 30px; height: 30px; background: #7c3aed; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11pt; }
+
+/* Feature cards */
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.feature-card { border: 1px solid #ddd6fe; border-radius: 8px; padding: 16px; }
+.feature-card .icon { font-size: 24pt; margin-bottom: 8px; }
+.feature-card h4 { color: #312e81; margin-bottom: 6px; font-size: 12pt; }
+.feature-card p { font-size: 10.5pt; color: #555; margin: 0; }
+
+/* Pill/badge */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 9.5pt; font-weight: bold; margin: 2px; }
+.badge-purple { background: #ede9fe; color: #4c1d95; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+
+/* Print */
+@media print {
+  .cover { min-height: 100vh; }
+  .page { padding: 40px 50px; }
+  h1.chapter { font-size: 22pt; }
+  body { font-size: 11pt; }
+}
+
+.chapter-num { font-size: 13pt; color: #a78bfa; font-weight: normal; display: block; margin-bottom: 4px; }
+.page-header { font-size: 9pt; color: #999; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 24px; display: flex; justify-content: space-between; }
+footer-note { font-size: 9pt; color: #999; text-align: center; margin-top: 40px; padding-top: 12px; border-top: 1px solid #eee; display: block; }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <div class="cover-logo">🛠</div>
+  <h1>DiyahQA Hub</h1>
+  <h2>Manual Book Pengguna</h2>
+  <div class="cover-divider"></div>
+  <p class="cover-sub">Panduan lengkap penggunaan aplikasi manajemen QA</p>
+  <p class="cover-sub">untuk tim Quality Assurance</p>
+  <p class="cover-version">Versi 1.0.0 &nbsp;|&nbsp; Agustus 2026 &nbsp;|&nbsp; Platform: macOS (arm64)</p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="page">
+  <div class="page-header"><span>DiyahQA Hub — Manual Book</span><span>Daftar Isi</span></div>
+  <h1 class="chapter">Daftar Isi</h1>
+
+  <div class="toc-item toc-chapter"><a href="#bab1">BAB 1 — Pendahuluan</a><span>3</span></div>
+  <div class="toc-item toc-section"><a href="#pengenalan">1.1 Pengenalan DiyahQA Hub</a><span>3</span></div>
+  <div class="toc-item toc-section"><a href="#fitur">1.2 Fitur Utama</a><span>3</span></div>
+  <div class="toc-item toc-section"><a href="#install">1.3 Instalasi Aplikasi</a><span>4</span></div>
+
+  <div class="toc-item toc-chapter"><a href="#bab2">BAB 2 — Manajemen Proyek</a><span>5</span></div>
+  <div class="toc-item toc-section"><a href="#project">2.1 Membuat dan Mengelola Proyek</a><span>5</span></div>
+  <div class="toc-item toc-section"><a href="#dashboard">2.2 Dashboard</a><span>5</span></div>
+
+  <div class="toc-item toc-chapter"><a href="#bab3">BAB 3 — Test Case Management</a><span>6</span></div>
+  <div class="toc-item toc-section"><a href="#tc-buat">3.1 Membuat Test Case</a><span>6</span></div>
+  <div class="toc-item toc-section"><a href="#tc-import">3.2 Import Test Case</a><span>6</span></div>
+  <div class="toc-item toc-section"><a href="#tc-library">3.3 TC Library</a><span>7</span></div>
+
+  <div class="toc-item toc-chapter"><a href="#bab4">BAB 4 — Bug Report Management</a><span>7</span></div>
+  <div class="toc-item toc-section"><a href="#bug-buat">4.1 Membuat Bug Report</a><span>7</span></div>
+  <div class="toc-item toc-section"><a href="#bug-detail">4.2 Field Bug Report</a><span>8</span></div>
+
+  <div class="toc-item toc-chapter"><a href="#bab5">BAB 5 — Integrasi Plane.so</a><span>9</span></div>
+  <div class="toc-item toc-section"><a href="#plane-config">5.1 Konfigurasi Plane API</a><span>9</span></div>
+  <div class="toc-item toc-section"><a href="#plane-transfer">5.2 Transfer Bug ke Plane</a><span>10</span></div>
+  <div class="toc-item toc-section"><a href="#plane-sync">5.3 Sinkronisasi Status</a><span>11</span></div>
+
+  <div class="toc-item toc-chapter"><a href="#bab6">BAB 6 — Google Chat Notification</a><span>12</span></div>
+  <div class="toc-item toc-chapter"><a href="#bab7">BAB 7 — Test Plans</a><span>13</span></div>
+  <div class="toc-item toc-chapter"><a href="#bab8">BAB 8 — Requirements Management</a><span>14</span></div>
+  <div class="toc-item toc-chapter"><a href="#bab9">BAB 9 — Labs (SQL, Security, Performance, CICD, Automation)</a><span>15</span></div>
+  <div class="toc-item toc-chapter"><a href="#bab10">BAB 10 — Environment Manager</a><span>18</span></div>
+  <div class="toc-item toc-chapter"><a href="#faq">FAQ &amp; Troubleshooting</a><span>19</span></div>
+</div>
+
+<!-- BAB 1 -->
+<div class="page" id="bab1">
+  <div class="page-header"><span>DiyahQA Hub — Manual Book</span><span>BAB 1 — Pendahuluan</span></div>
+  <h1 class="chapter"><span class="chapter-num">BAB 1</span>Pendahuluan</h1>
+
+  <h2 class="section" id="pengenalan">1.1 Pengenalan DiyahQA Hub</h2>
+  <p>DiyahQA Hub adalah aplikasi desktop berbasis <strong>Electron + React</strong> yang dirancang khusus untuk tim Quality Assurance (QA). Aplikasi ini menyediakan satu platform terpadu untuk mengelola seluruh aktivitas QA mulai dari penulisan test case, pelaporan bug, perencanaan pengujian, hingga pembelajaran QA melalui berbagai modul lab interaktif.</p>
+  <p>Semua data tersimpan secara lokal di database SQLite yang terenkripsi pada perangkat pengguna, sehingga data tidak dikirim ke server eksternal kecuali saat menggunakan fitur integrasi Plane.so atau notifikasi Google Chat.</p>
+
+  <div class="info-box">
+    <div class="label">ℹ️ Informasi Platform</div>
+    Aplikasi ini tersedia untuk macOS (Apple Silicon / arm64). Data tersimpan lokal di: <code>~/Library/Application Support/DiyahQA Hub/</code>
+  </div>
+
+  <h2 class="section" id="fitur">1.2 Fitur Utama</h2>
+  <div class="feature-grid">
+    <div class="feature-card"><div class="icon">🐛</div><h4>Bug Report Management</h4><p>Catat, kelola, dan transfer bug report ke Plane.so dengan satu klik. Lengkap dengan tracking status real-time.</p></div>
+    <div class="feature-card"><div class="icon">✅</div><h4>Test Case Management</h4><p>Buat dan kelola test case dengan field lengkap. Import dari CSV atau Allure JSON.</p></div>
+    <div class="feature-card"><div class="icon">📋</div><h4>Test Plans & Runs</h4><p>Buat test plan, assign test cases, dan track hasil eksekusi per environment.</p></div>
+    <div class="feature-card"><div class="icon">📝</div><h4>Requirements Traceability</h4><p>Kelola requirements dan hubungkan ke test cases untuk traceability matrix.</p></div>
+    <div class="feature-card"><div class="icon">✈️</div><h4>Integrasi Plane.so</h4><p>Transfer bug report langsung ke workspace Plane dengan mapping field otomatis.</p></div>
+    <div class="feature-card"><div class="icon">💬</div><h4>Google Chat Notification</h4><p>Broadcast otomatis ke Google Chat saat bug ditransfer ke Plane.</p></div>
+    <div class="feature-card"><div class="icon">🔬</div><h4>SQL Lab</h4><p>Latihan SQL dengan HR Schema dan challenges interaktif langsung di browser.</p></div>
+    <div class="feature-card"><div class="icon">🎭</div><h4>Automation Lab</h4><p>Playwright Academy dengan tutorial interaktif dan contoh kode otomasi.</p></div>
+    <div class="feature-card"><div class="icon">🔒</div><h4>Security Lab</h4><p>Simulasi OWASP Top 10 dan konsep security testing.</p></div>
+    <div class="feature-card"><div class="icon">⚡</div><h4>Performance Lab</h4><p>Panduan k6 dan Gatling untuk performance testing.</p></div>
+  </div>
+
+  <h2 class="section" id="install">1.3 Instalasi Aplikasi</h2>
+  <ol class="steps">
+    <li>Download file <strong>DiyahQA Hub-1.0.0-arm64.dmg</strong> dari distribusi resmi</li>
+    <li>Double-click file DMG untuk membuka installer</li>
+    <li>Drag ikon <strong>DiyahQA Hub</strong> ke folder <strong>Applications</strong></li>
+    <li>Klik kanan pada aplikasi di folder Applications → pilih <strong>Open</strong> (karena aplikasi belum memiliki code signing resmi)</li>
+    <li>Pada dialog keamanan macOS, klik <strong>Open</strong> untuk mengkonfirmasi</li>
+    <li>Aplikasi akan membuka dan membuat database lokal secara otomatis</li>
+  </ol>
+
+  <div class="warning-box">
+    <div class="label">⚠️ Perhatian Keamanan macOS</div>
+    Jika muncul pesan "aplikasi tidak dapat dibuka karena developer tidak teridentifikasi", buka <strong>System Settings → Privacy &amp; Security</strong> dan klik <strong>"Open Anyway"</strong> di bagian bawah halaman.
+  </div>
+</div>

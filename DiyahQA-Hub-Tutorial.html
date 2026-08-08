@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Tutorial DiyahQA Hub — Dokumentasi Lengkap</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 11pt; line-height: 1.7; }
+
+/* Print */
+@media print {
+  .no-print { display: none; }
+  .page-break { page-break-before: always; }
+  body { font-size: 10pt; }
+  .cover { min-height: 100vh; }
+}
+
+/* Cover */
+.cover {
+  min-height: 100vh; background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 60%, #6d28d9 100%);
+  color: white; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center; padding: 60px 40px;
+  page-break-after: always;
+}
+.cover-emoji { font-size: 80px; margin-bottom: 20px; }
+.cover h1 { font-size: 38pt; font-weight: 900; letter-spacing: 1px; margin-bottom: 10px; }
+.cover h2 { font-size: 16pt; font-weight: 300; opacity: 0.85; margin-bottom: 30px; }
+.cover-line { width: 80px; height: 4px; background: #a78bfa; margin: 0 auto 24px; border-radius: 2px; }
+.cover p { font-size: 12pt; opacity: 0.75; }
+.cover-meta { margin-top: 50px; font-size: 10pt; opacity: 0.55; }
+
+/* Layout */
+.container { max-width: 800px; margin: 0 auto; padding: 40px 50px; }
+
+/* Chapter */
+.chapter-header { page-break-before: always; padding: 30px 0 16px; border-bottom: 3px solid #6d28d9; margin-bottom: 24px; }
+.chapter-num { font-size: 11pt; color: #a78bfa; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+.chapter-title { font-size: 22pt; font-weight: 800; color: #1e1b4b; margin-top: 4px; }
+
+/* Section */
+h2 { font-size: 14pt; color: #4c1d95; border-left: 4px solid #7c3aed; padding-left: 12px; margin: 24px 0 12px; }
+h3 { font-size: 12pt; color: #1e1b4b; margin: 18px 0 8px; font-weight: 700; }
+p { margin-bottom: 12px; text-align: justify; }
+ul, ol { margin: 8px 0 12px 24px; }
+li { margin-bottom: 6px; }
+
+/* Boxes */
+.tip { background: #ede9fe; border-left: 4px solid #7c3aed; padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0; }
+.tip strong { color: #4c1d95; }
+.warning { background: #fef3c7; border-left: 4px solid #d97706; padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0; }
+.warning strong { color: #92400e; }
+.success { background: #d1fae5; border-left: 4px solid #059669; padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0; }
+.success strong { color: #065f46; }
+.example { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+.example-title { font-weight: 700; color: #4c1d95; font-size: 10pt; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; }
+th { background: #4c1d95; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; }
+tr:nth-child(even) td { background: #f5f3ff; }
+
+/* Steps */
+.steps { list-style: none; margin: 12px 0 16px 0; counter-reset: step; }
+.steps li { counter-increment: step; padding: 8px 0 8px 44px; position: relative; border-bottom: 1px solid #f0f0f0; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 7px; width: 28px; height: 28px; background: #7c3aed; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11pt; line-height: 28px; text-align: center; }
+
+/* Field table */
+.field-table td:first-child { font-weight: 600; color: #4c1d95; width: 160px; }
+.field-table td:nth-child(2) { color: #dc2626; width: 60px; font-size: 9pt; }
+
+/* Code */
+code { background: #f1f5f9; padding: 1px 6px; border-radius: 3px; font-size: 9.5pt; color: #be185d; font-family: monospace; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9pt; font-weight: 600; margin: 1px; }
+.b-purple { background: #ede9fe; color: #4c1d95; }
+.b-green { background: #d1fae5; color: #065f46; }
+.b-red { background: #fee2e2; color: #991b1b; }
+.b-yellow { background: #fef3c7; color: #92400e; }
+.b-blue { background: #dbeafe; color: #1e40af; }
+.b-grey { background: #f1f5f9; color: #475569; }
+
+/* TOC */
+.toc-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted #ccc; font-size: 10.5pt; }
+.toc-chapter { font-weight: 700; color: #1e1b4b; margin-top: 10px; font-size: 11pt; }
+.toc-section { padding-left: 18px; color: #555; font-size: 10pt; }
+
+footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9pt; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-emoji">🛠</div>
+  <h1>DiyahQA Hub</h1>
+  <h2>Dokumentasi Tutorial Lengkap</h2>
+  <div class="cover-line"></div>
+  <p>Panduan praktis penggunaan fitur-fitur DiyahQA Hub</p>
+  <p>beserta contoh nyata untuk tim Quality Assurance</p>
+  <div class="cover-meta">Versi 1.0.0 &nbsp;|&nbsp; Agustus 2026 &nbsp;|&nbsp; Platform: macOS</div>
+</div>
+
+<!-- TOC -->
+<div class="container">
+  <div class="chapter-header" style="page-break-before: avoid;">
+    <div class="chapter-num">Daftar Isi</div>
+    <div class="chapter-title">Isi Dokumen</div>
+  </div>
+
+  <div class="toc-row toc-chapter"><span>1. Memulai DiyahQA Hub</span><span>3</span></div>
+  <div class="toc-row toc-section"><span>1.1 Instalasi &amp; Membuka Aplikasi</span><span>3</span></div>
+  <div class="toc-row toc-section"><span>1.2 Membuat Proyek Pertama</span><span>3</span></div>
+
+  <div class="toc-row toc-chapter"><span>2. Test Case Management</span><span>4</span></div>
+  <div class="toc-row toc-section"><span>2.1 Membuat Test Case Manual</span><span>4</span></div>
+  <div class="toc-row toc-section"><span>2.2 Import Test Case dari CSV</span><span>5</span></div>
+  <div class="toc-row toc-section"><span>2.3 Import dari Allure JSON</span><span>5</span></div>
+  <div class="toc-row toc-section"><span>2.4 TC Library</span><span>6</span></div>
+
+  <div class="toc-row toc-chapter"><span>3. Bug Report Management</span><span>7</span></div>
+  <div class="toc-row toc-section"><span>3.1 Membuat Bug Report</span><span>7</span></div>
+  <div class="toc-row toc-section"><span>3.2 Filter &amp; Pencarian Bug</span><span>8</span></div>
+  <div class="toc-row toc-section"><span>3.3 Export Bug Report</span><span>8</span></div>
+
+  <div class="toc-row toc-chapter"><span>4. Test Plans &amp; Eksekusi</span><span>9</span></div>
+  <div class="toc-row toc-section"><span>4.1 Membuat Test Plan</span><span>9</span></div>
+  <div class="toc-row toc-section"><span>4.2 Menjalankan Test Plan</span><span>10</span></div>
+
+  <div class="toc-row toc-chapter"><span>5. Requirements Traceability</span><span>11</span></div>
+
+  <div class="toc-row toc-chapter"><span>6. Integrasi Plane.so</span><span>12</span></div>
+  <div class="toc-row toc-section"><span>6.1 Konfigurasi Plane API</span><span>12</span></div>
+  <div class="toc-row toc-section"><span>6.2 Transfer Bug ke Plane</span><span>13</span></div>
+  <div class="toc-row toc-section"><span>6.3 Sync &amp; Notifikasi Google Chat</span><span>14</span></div>
+
+  <div class="toc-row toc-chapter"><span>7. API Lab</span><span>15</span></div>
+  <div class="toc-row toc-chapter"><span>8. Labs Lainnya</span><span>17</span></div>
+  <div class="toc-row toc-chapter"><span>9. Environment Manager</span><span>18</span></div>
+  <div class="toc-row toc-chapter"><span>10. FAQ &amp; Troubleshooting</span><span>19</span></div>
+</div>
+
+<!-- BAB 1 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 1</div>
+    <div class="chapter-title">Memulai DiyahQA Hub</div>
+  </div>
+
+  <h2>1.1 Instalasi &amp; Membuka Aplikasi</h2>
+  <ol class="steps">
+    <li>Download file <strong>DiyahQA Hub-1.0.0-arm64.dmg</strong></li>
+    <li>Double-click DMG → drag ikon ke folder <strong>Applications</strong></li>
+    <li>Klik kanan aplikasi → pilih <strong>Open</strong> (untuk bypass Gatekeeper)</li>
+    <li>Klik <strong>Open</strong> pada dialog konfirmasi keamanan macOS</li>
+    <li>Aplikasi terbuka dan database lokal dibuat otomatis</li>
+  </ol>
+  <div class="tip"><strong>💡 Tips:</strong> Jika muncul "tidak dapat dibuka karena developer tidak teridentifikasi", buka System Settings → Privacy &amp; Security → klik "Open Anyway"</div>
+
+  <h2>1.2 Membuat Proyek Pertama</h2>
+  <p>Sebelum menggunakan fitur apapun, buat proyek terlebih dahulu. Proyek adalah kontainer untuk semua test case, bug report, dan test plan.</p>
+  <ol class="steps">
+    <li>Di sidebar kiri, klik ikon <strong>+</strong> di bagian <em>PROJECTS</em></li>
+    <li>Isi nama proyek dan deskripsi singkat</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh</div>
+    <table class="field-table">
+      <tr><td>Nama Proyek</td><td></td><td>Jobseeker App v2.0</td></tr>
+      <tr><td>Deskripsi</td><td></td><td>Testing siklus release Agustus 2026 — fitur Register, Login, dan Dashboard kandidat</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- BAB 2 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 2</div>
+    <div class="chapter-title">Test Case Management</div>
+  </div>
+
+  <h2>2.1 Membuat Test Case Manual</h2>
+  <p>Test case adalah dokumentasi langkah-langkah pengujian beserta ekspektasi hasilnya.</p>
+  <ol class="steps">
+    <li>Klik <strong>Test Cases</strong> di sidebar</li>
+    <li>Pilih proyek dari dropdown filter di atas</li>
+    <li>Klik tombol <strong>+ Tambah Test Case</strong></li>
+    <li>Isi semua field yang diperlukan</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <h3>Field Test Case</h3>
+  <table class="field-table">
+    <tr><th>Field</th><th>Wajib</th><th>Keterangan</th></tr>
+    <tr><td>No</td><td class="b-grey">Opsional</td><td>Nomor test case, contoh: TC-001</td></tr>
+    <tr><td>Title</td><td><span class="badge b-red">Wajib</span></td><td>Judul singkat dan deskriptif</td></tr>
+    <tr><td>Module</td><td><span class="badge b-grey">Opsional</span></td><td>Modul/fitur yang diuji</td></tr>
+    <tr><td>Section</td><td><span class="badge b-grey">Opsional</span></td><td>Sub-bagian dari modul</td></tr>
+    <tr><td>Scenario</td><td><span class="badge b-grey">Opsional</span></td><td>Langkah-langkah pengujian</td></tr>
+    <tr><td>Expected Result</td><td><span class="badge b-grey">Opsional</span></td><td>Hasil yang diharapkan</td></tr>
+    <tr><td>Status</td><td><span class="badge b-red">Wajib</span></td><td>Pending / Pass / Fail / Skip</td></tr>
+    <tr><td>Evidence</td><td><span class="badge b-grey">Opsional</span></td><td>Link screenshot atau catatan bukti</td></tr>
+  </table>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Test Case Lengkap</div>
+    <table class="field-table">
+      <tr><td>No</td><td></td><td>REG-001</td></tr>
+      <tr><td>Title</td><td></td><td>Tampil Modal Ketentuan dan Pemberitahuan Privasi saat Buka Halaman Register</td></tr>
+      <tr><td>Module</td><td></td><td>Register</td></tr>
+      <tr><td>Website</td><td></td><td>https://app.jobseeker.company</td></tr>
+      <tr><td>Scenario</td><td></td><td>1. Buka halaman Register<br>2. Amati tampilan awal halaman<br>3. Verifikasi modal muncul otomatis</td></tr>
+      <tr><td>Expected Result</td><td></td><td>Modal berisi teks Ketentuan Penggunaan dan Kebijakan Privasi muncul secara otomatis</td></tr>
+      <tr><td>Status</td><td></td><td>Pending</td></tr>
+    </table>
+  </div>
+
+  <h2>2.2 Import Test Case dari CSV</h2>
+  <p>Jika sudah punya test case di spreadsheet (Excel/Google Sheets), bisa diimport langsung.</p>
+  <ol class="steps">
+    <li>Siapkan file CSV dengan header: <code>NO, TITLE, MODULE, SECTION, SCENARIO, EXPECTED RESULT, STATUS, WEBSITE, TEST DATA, EVIDENCE, NOTE</code></li>
+    <li>Di halaman Test Cases, klik tombol <strong>Import CSV</strong></li>
+    <li>Pilih file CSV</li>
+    <li>Sistem akan import semua baris secara otomatis</li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Format CSV</div>
+    <table>
+      <tr><th>NO</th><th>TITLE</th><th>MODULE</th><th>STATUS</th></tr>
+      <tr><td>TC-001</td><td>Login dengan email valid</td><td>Auth</td><td>Pending</td></tr>
+      <tr><td>TC-002</td><td>Login dengan password salah</td><td>Auth</td><td>Pending</td></tr>
+      <tr><td>TC-003</td><td>Lupa password — kirim email reset</td><td>Auth</td><td>Pending</td></tr>
+    </table>
+  </div>
+
+  <h2>2.3 Import dari Allure JSON</h2>
+  <p>Jika tim sudah menggunakan Allure untuk automation testing, hasilnya bisa diimport langsung.</p>
+  <ol class="steps">
+    <li>Dari hasil Allure report, ambil file JSON di folder <code>allure-report/data/test-cases/</code></li>
+    <li>Di Test Cases, klik <strong>Import Allure</strong></li>
+    <li>Pilih file JSON Allure</li>
+    <li>Status akan otomatis dipetakan: passed→Pass, failed→Fail, skipped→Skip</li>
+  </ol>
+
+  <h2>2.4 TC Library — Template Test Case</h2>
+  <p>TC Library menyimpan template test case yang bisa digunakan ulang di berbagai proyek.</p>
+  <ol class="steps">
+    <li>Klik <strong>TC Library</strong> di sidebar</li>
+    <li>Klik <strong>+ Tambah ke Library</strong></li>
+    <li>Isi template dengan scenario umum yang sering digunakan</li>
+    <li>Saat membuat test case baru, gunakan template dari library untuk menghemat waktu</li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Template di TC Library</div>
+    <p><strong>Judul:</strong> Upload File — Validasi Format yang Tidak Didukung</p>
+    <p><strong>Tags:</strong> upload, validasi, file</p>
+    <p><strong>Scenario:</strong><br>1. Buka halaman yang memiliki fitur upload<br>2. Klik tombol Upload<br>3. Pilih file dengan format tidak didukung (contoh: .exe, .zip)<br>4. Klik Submit/Upload</p>
+    <p><strong>Expected Result:</strong> Sistem menampilkan pesan error "Format file tidak didukung"</p>
+  </div>
+</div>
+
+<!-- BAB 3 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 3</div>
+    <div class="chapter-title">Bug Report Management</div>
+  </div>
+
+  <h2>3.1 Membuat Bug Report</h2>
+  <p>Bug report adalah dokumentasi resmi untuk setiap defect/bug yang ditemukan selama pengujian.</p>
+  <ol class="steps">
+    <li>Klik <strong>Bug Reports</strong> di sidebar</li>
+    <li>Klik tombol <strong>+ Tambah Bug</strong> di kanan atas</li>
+    <li>Isi semua field yang diperlukan</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <h3>Field Bug Report</h3>
+  <table class="field-table">
+    <tr><th>Field</th><th>Status</th><th>Keterangan</th></tr>
+    <tr><td>Bug Number</td><td><span class="badge b-grey">Auto</span></td><td>Otomatis BUG-001, BUG-002, dst.</td></tr>
+    <tr><td>Title</td><td><span class="badge b-red">Wajib</span></td><td>Judul singkat dan deskriptif</td></tr>
+    <tr><td>Severity</td><td><span class="badge b-red">Wajib</span></td><td>Critical / High / Medium / Low</td></tr>
+    <tr><td>Priority</td><td><span class="badge b-red">Wajib</span></td><td>Critical / High / Medium / Low</td></tr>
+    <tr><td>Status</td><td><span class="badge b-red">Wajib</span></td><td>Open / In Progress / Resolved / Closed / Won't Fix</td></tr>
+    <tr><td>Module</td><td><span class="badge b-grey">Opsional</span></td><td>Modul fitur yang bermasalah</td></tr>
+    <tr><td>Environment</td><td><span class="badge b-grey">Opsional</span></td><td>Staging / Production / Dev</td></tr>
+    <tr><td>Description</td><td><span class="badge b-grey">Opsional</span></td><td>Deskripsi lengkap bug</td></tr>
+    <tr><td>Steps to Reproduce</td><td><span class="badge b-grey">Opsional</span></td><td>Langkah untuk mereproduksi bug</td></tr>
+    <tr><td>Expected Behavior</td><td><span class="badge b-grey">Opsional</span></td><td>Perilaku yang seharusnya terjadi</td></tr>
+    <tr><td>Actual Behavior</td><td><span class="badge b-grey">Opsional</span></td><td>Perilaku yang sebenarnya terjadi</td></tr>
+    <tr><td>Evidence URL</td><td><span class="badge b-grey">Opsional</span></td><td>Link screenshot/video/log</td></tr>
+    <tr><td>Reporter</td><td><span class="badge b-grey">Opsional</span></td><td>Nama QA yang melaporkan</td></tr>
+    <tr><td>Assignee</td><td><span class="badge b-grey">Opsional</span></td><td>Developer yang ditugaskan</td></tr>
+  </table>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Bug Report Lengkap</div>
+    <table class="field-table">
+      <tr><td>Bug Number</td><td></td><td>BUG-005</td></tr>
+      <tr><td>Title</td><td></td><td>Summary tidak sesuai figma pada halaman Form Builder</td></tr>
+      <tr><td>Severity</td><td></td><td>High</td></tr>
+      <tr><td>Priority</td><td></td><td>High</td></tr>
+      <tr><td>Status</td><td></td><td>Open</td></tr>
+      <tr><td>Module</td><td></td><td>Form Builder - Answer</td></tr>
+      <tr><td>Environment</td><td></td><td>Staging</td></tr>
+      <tr><td>Description</td><td></td><td>Tampilan summary pada halaman Form Builder Answer tidak sesuai dengan desain figma. Font size dan warna berbeda.</td></tr>
+      <tr><td>Steps to Reproduce</td><td></td><td>1. Login sebagai user<br>2. Buka menu Form Builder<br>3. Klik Answer pada form yang sudah ada<br>4. Amati bagian Summary</td></tr>
+      <tr><td>Expected</td><td></td><td>Summary tampil dengan font Inter 14px warna #1E293B sesuai figma</td></tr>
+      <tr><td>Actual</td><td></td><td>Summary tampil dengan font default 16px warna hitam</td></tr>
+      <tr><td>Reporter</td><td></td><td>Rodiyatun Mardiyah</td></tr>
+    </table>
+  </div>
+
+  <h2>3.2 Filter &amp; Pencarian Bug</h2>
+  <p>Gunakan filter di toolbar untuk mempersempit tampilan bug report.</p>
+  <table>
+    <tr><th>Filter</th><th>Opsi</th></tr>
+    <tr><td>Pencarian</td><td>Ketik judul, bug number, reporter, atau module</td></tr>
+    <tr><td>All Project</td><td>Filter berdasarkan proyek</td></tr>
+    <tr><td>All Status</td><td>Open / In Progress / Resolved / Closed / Won't Fix</td></tr>
+    <tr><td>All Severity</td><td>Critical / High / Medium / Low</td></tr>
+    <tr><td>All Priority</td><td>Critical / High / Medium / Low</td></tr>
+    <tr><td>All Module</td><td>Filter berdasarkan nama modul</td></tr>
+  </table>
+
+  <h2>3.3 Export Bug Report</h2>
+  <ol class="steps">
+    <li>Klik tombol <strong>Export CSV</strong> di kanan atas halaman Bug Reports</li>
+    <li>File CSV akan terdownload dengan semua data bug yang terlihat (sesuai filter aktif)</li>
+    <li>Buka di Excel atau Google Sheets untuk analisis lebih lanjut</li>
+  </ol>
+
+  <div class="tip"><strong>💡 Tips:</strong> Aktifkan filter sebelum export untuk mendapatkan subset data spesifik, misalnya hanya bug dengan status Open dan severity High.</div>
+</div>
+
+<!-- BAB 4 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 4</div>
+    <div class="chapter-title">Test Plans &amp; Eksekusi</div>
+  </div>
+
+  <p>Test Plan adalah dokumen yang mengelompokkan test case untuk satu siklus pengujian (sprint, release, atau regression).</p>
+
+  <h2>4.1 Membuat Test Plan</h2>
+  <ol class="steps">
+    <li>Klik <strong>Test Plans</strong> di sidebar</li>
+    <li>Klik tombol <strong>+ New Test Plan</strong></li>
+    <li>Isi nama plan, deskripsi, pilih proyek, dan environment (opsional)</li>
+    <li>Pilih test case yang akan dimasukkan (bisa pilih semua atau spesifik)</li>
+    <li>Klik <strong>Buat Test Plan</strong></li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Test Plan</div>
+    <table class="field-table">
+      <tr><td>Nama Plan</td><td></td><td>Regression Testing Sprint 12 — Agustus 2026</td></tr>
+      <tr><td>Deskripsi</td><td></td><td>Testing seluruh fitur yang terdampak perubahan pada release v2.3.0</td></tr>
+      <tr><td>Proyek</td><td></td><td>Jobseeker App v2.0</td></tr>
+      <tr><td>Environment</td><td></td><td>Staging</td></tr>
+      <tr><td>Test Cases</td><td></td><td>REG-001 s/d REG-050 (50 test cases)</td></tr>
+    </table>
+  </div>
+
+  <h2>4.2 Menjalankan Test Plan</h2>
+
+  <h3>Memulai Eksekusi</h3>
+  <ol class="steps">
+    <li>Klik test plan yang ingin dieksekusi dari daftar</li>
+    <li>Klik tombol <strong>▶ Mulai</strong> untuk mengubah status dari Draft ke Active</li>
+    <li>Tabel test case akan menampilkan tombol aksi: <span class="badge b-green">Pass</span> <span class="badge b-red">Fail</span> <span class="badge b-yellow">Blocked</span> <span class="badge b-grey">Skip</span></li>
+  </ol>
+
+  <h3>Mengisi Status Test Case</h3>
+  <table>
+    <tr><th>Tombol</th><th>Arti</th><th>Catatan</th></tr>
+    <tr><td><span class="badge b-green">Pass</span></td><td>Test berhasil</td><td>Tidak perlu catatan</td></tr>
+    <tr><td><span class="badge b-red">Fail</span></td><td>Test gagal/bug ditemukan</td><td>Modal akan muncul untuk isi catatan kegagalan</td></tr>
+    <tr><td><span class="badge b-yellow">Blocked</span></td><td>Tidak bisa dieksekusi</td><td>Karena dependency atau environment bermasalah</td></tr>
+    <tr><td><span class="badge b-grey">Skip</span></td><td>Dilewati</td><td>Out of scope atau tidak relevan</td></tr>
+  </table>
+
+  <div class="warning"><strong>⚠️ Catatan:</strong> Jika klik <strong>Fail</strong>, akan muncul modal untuk mengisi catatan kegagalan. Isi dengan deskripsi singkat bug yang ditemukan untuk dokumentasi yang lebih lengkap.</div>
+
+  <h3>Menyelesaikan Test Plan</h3>
+  <ol class="steps">
+    <li>Setelah semua test case selesai dieksekusi, klik tombol <strong>✅ Selesai</strong></li>
+    <li>Jika masih ada test case "Not Run", sistem akan meminta konfirmasi</li>
+    <li>Status plan berubah menjadi <span class="badge b-green">COMPLETED</span></li>
+    <li>Progress bar dan statistik (Pass/Fail/Blocked/Not Run) tersimpan</li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Hasil Eksekusi</div>
+    <table>
+      <tr><th>Metrik</th><th>Nilai</th></tr>
+      <tr><td>Total Test Cases</td><td>50</td></tr>
+      <tr><td>Pass ✅</td><td>42 (84%)</td></tr>
+      <tr><td>Fail ❌</td><td>5 (10%)</td></tr>
+      <tr><td>Blocked 🔶</td><td>2 (4%)</td></tr>
+      <tr><td>Not Run ⚪</td><td>1 (2%)</td></tr>
+      <tr><td>Pass Rate</td><td>84%</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- BAB 5 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 5</div>
+    <div class="chapter-title">Requirements Traceability</div>
+  </div>
+
+  <p>Fitur ini memungkinkan kamu memetakan setiap requirement ke test case yang memverifikasinya. Berguna untuk audit dan coverage analysis.</p>
+
+  <h2>5.1 Membuat Requirement</h2>
+  <ol class="steps">
+    <li>Klik <strong>Requirements</strong> di sidebar</li>
+    <li>Klik <strong>+ Tambah Requirement</strong></li>
+    <li>Isi kode, judul, deskripsi, prioritas, dan status</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Requirement</div>
+    <table class="field-table">
+      <tr><td>Kode</td><td></td><td>REQ-001</td></tr>
+      <tr><td>Judul</td><td></td><td>User dapat melakukan registrasi dengan email valid</td></tr>
+      <tr><td>Deskripsi</td><td></td><td>Sistem harus memungkinkan user baru mendaftar menggunakan email yang belum terdaftar sebelumnya</td></tr>
+      <tr><td>Prioritas</td><td></td><td>High</td></tr>
+      <tr><td>Status</td><td></td><td>Active</td></tr>
+    </table>
+  </div>
+
+  <h2>5.2 Menghubungkan Requirement ke Test Case</h2>
+  <ol class="steps">
+    <li>Buka detail requirement yang ingin dihubungkan</li>
+    <li>Di bagian <strong>Linked Test Cases</strong>, klik <strong>Tambah Link</strong></li>
+    <li>Pilih test case dari daftar yang tersedia</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Traceability Matrix</div>
+    <table>
+      <tr><th>Requirement</th><th>Test Case</th><th>Status TC</th></tr>
+      <tr><td>REQ-001: Registrasi email valid</td><td>REG-001: Modal privasi muncul</td><td><span class="badge b-green">Pass</span></td></tr>
+      <tr><td>REQ-001: Registrasi email valid</td><td>REG-002: Tolak pada modal privasi</td><td><span class="badge b-green">Pass</span></td></tr>
+      <tr><td>REQ-001: Registrasi email valid</td><td>REG-003: Setuju dan lanjut Step 1</td><td><span class="badge b-grey">Not Run</span></td></tr>
+      <tr><td>REQ-002: Reset password</td><td>(Belum ada test case)</td><td><span class="badge b-red">Uncovered</span></td></tr>
+    </table>
+  </div>
+
+  <div class="tip"><strong>💡 Tip:</strong> Requirement yang tidak memiliki test case terhubung menandakan coverage gap — perlu segera dibuat test case untuk requirement tersebut sebelum release.</div>
+</div>
+
+<!-- BAB 6 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 6</div>
+    <div class="chapter-title">Integrasi Plane.so</div>
+  </div>
+
+  <p>DiyahQA Hub dapat mengirim bug report langsung ke Plane.so (project management tool) sebagai issue, baik satu per satu maupun massal.</p>
+
+  <h2>6.1 Konfigurasi Plane API</h2>
+  <ol class="steps">
+    <li>Di halaman Bug Reports, klik tombol <strong>⚙️ Plane</strong> di kanan atas</li>
+    <li>Isi form konfigurasi Plane</li>
+    <li>Klik <strong>Test Koneksi</strong> untuk memverifikasi</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <h3>Field Konfigurasi Plane</h3>
+  <table class="field-table">
+    <tr><th>Field</th><th>Status</th><th>Keterangan</th></tr>
+    <tr><td>API Key</td><td><span class="badge b-red">Wajib</span></td><td>Token API dari akun Plane kamu. Buka Plane → Settings → API Tokens</td></tr>
+    <tr><td>Workspace Slug</td><td><span class="badge b-red">Wajib</span></td><td>Slug workspace Plane, contoh: <code>jsc</code></td></tr>
+    <tr><td>Project ID</td><td><span class="badge b-grey">Opsional</span></td><td>UUID project di Plane. Default sudah terisi.</td></tr>
+    <tr><td>Base URL</td><td><span class="badge b-grey">Opsional</span></td><td>Untuk self-hosted Plane. Default: <code>https://api.plane.so</code>. Contoh custom: <code>https://workspace.jobseeker.company/jsc</code></td></tr>
+    <tr><td>Assignee Email</td><td><span class="badge b-grey">Opsional</span></td><td>Email default untuk assignee issue baru di Plane</td></tr>
+    <tr><td>Google Chat Webhook</td><td><span class="badge b-grey">Opsional</span></td><td>URL webhook Google Chat untuk notifikasi otomatis</td></tr>
+  </table>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Konfigurasi (Self-hosted Plane)</div>
+    <table class="field-table">
+      <tr><td>API Key</td><td></td><td>••••••••••••••••abcd (masked setelah disimpan)</td></tr>
+      <tr><td>Workspace Slug</td><td></td><td>jsc</td></tr>
+      <tr><td>Project ID</td><td></td><td>65975ef6-fe92-43b0-bc11-293d6fe5c666</td></tr>
+      <tr><td>Base URL</td><td></td><td>https://workspace.jobseeker.company/jsc</td></tr>
+      <tr><td>Google Chat Webhook</td><td></td><td>https://chat.googleapis.com/v1/spaces/AAQ.../messages?key=...</td></tr>
+    </table>
+  </div>
+
+  <h2>6.2 Transfer Bug ke Plane</h2>
+
+  <h3>Transfer Satu Bug</h3>
+  <ol class="steps">
+    <li>Di tabel Bug Reports, temukan bug yang ingin ditransfer</li>
+    <li>Klik ikon <strong>✈️</strong> di kolom Actions</li>
+    <li>Muncul modal input email assignee — isi email atau kosongkan jika tidak perlu</li>
+    <li>Klik <strong>Transfer</strong></li>
+    <li>Kolom Plane Status akan menampilkan badge <span class="badge b-grey">Backlog</span> setelah berhasil</li>
+  </ol>
+
+  <h3>Transfer Banyak Bug (Bulk)</h3>
+  <ol class="steps">
+    <li>Centang checkbox di beberapa baris bug</li>
+    <li>Toolbar akan menampilkan tombol <strong>✈️ Transfer ke Plane (N)</strong></li>
+    <li>Klik tombol tersebut dan konfirmasi dialog</li>
+    <li>Sistem memproses satu per satu secara berurutan</li>
+    <li>Ringkasan hasil (berhasil/gagal/dilewati) ditampilkan setelah selesai</li>
+  </ol>
+
+  <div class="tip"><strong>💡 Tips:</strong> Bug yang sudah pernah ditransfer (sudah punya Plane Issue ID) akan di-skip secara otomatis dalam bulk transfer untuk menghindari duplikasi.</div>
+
+  <h2>6.3 Sync Status &amp; Notifikasi Google Chat</h2>
+
+  <h3>Sync Status Plane</h3>
+  <p>Status issue di Plane (Backlog, In Progress, Done, dll.) disinkronkan ke kolom <strong>Plane Status</strong> di tabel bug report.</p>
+  <ul>
+    <li><strong>Auto-sync:</strong> Terjadi otomatis saat halaman Bug Reports dibuka (interval minimum 60 detik)</li>
+    <li><strong>Manual sync:</strong> Klik ikon 🔄 di header kolom "Plane Status"</li>
+  </ul>
+
+  <h3>Warna Badge Status</h3>
+  <table>
+    <tr><th>Status Plane</th><th>Warna Badge</th></tr>
+    <tr><td>Backlog / Todo</td><td><span class="badge b-grey">Abu-abu</span></td></tr>
+    <tr><td>In Progress / On Progress</td><td><span class="badge b-blue">Biru</span></td></tr>
+    <tr><td>Done</td><td><span class="badge b-green">Hijau</span></td></tr>
+    <tr><td>Cancelled / Rejected</td><td><span class="badge b-red">Merah</span></td></tr>
+    <tr><td>Status lain</td><td><span class="badge" style="background:#e5e7eb;color:#6b7280">Abu-abu muda</span></td></tr>
+  </table>
+
+  <h3>Notifikasi Google Chat</h3>
+  <p>Jika Google Chat Webhook URL sudah dikonfigurasi, notifikasi otomatis dikirim ke Google Chat setiap kali bug berhasil ditransfer ke Plane. Format pesan:</p>
+  <div class="example">
+    <div class="example-title">📋 Contoh Pesan Notifikasi Google Chat</div>
+    <p style="font-family:monospace; font-size:10pt; background:#f8fafc; padding:12px; border-radius:6px; line-height:1.8;">
+    🐛 <strong>QA menemukan bug pada Form Builder</strong> dengan detail sebagai berikut:<br><br>
+    <strong>Bug ID:</strong> BUG-005<br>
+    <strong>Module:</strong> Form Builder - Answer<br>
+    <strong>Environment:</strong> Staging<br>
+    <strong>Severity:</strong> High<br>
+    <strong>Summary:</strong> Summary tidak sesuai figma<br>
+    <strong>Impact:</strong> Tampilan tidak sesuai desain...<br>
+    <strong>Status:</strong> Open<br>
+    <strong>Assign To:</strong> diyahdo123@gmail.com<br>
+    <strong>Workspace:</strong> https://workspace.jobseeker.company/...<br>
+    <strong>Reporter:</strong> Rodiyatun Mardiyah<br><br>
+    Mohon untuk sementara menghindari penggunaan fitur tersebut apabila bug berdampak pada operasional...<br><br>
+    Terima kasih.
+    </p>
+  </div>
+</div>
+
+<!-- BAB 7 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 7</div>
+    <div class="chapter-title">API Lab</div>
+  </div>
+
+  <p>API Lab adalah modul untuk belajar, menguji API secara manual, mengelola collection, dan generate automation script Playwright.</p>
+
+  <h2>7.1 Tab Manual Testing</h2>
+  <p>Kirim HTTP request langsung dari aplikasi — mirip seperti Postman.</p>
+  <ol class="steps">
+    <li>Klik <strong>API Lab</strong> di sidebar</li>
+    <li>Pilih tab <strong>Manual Testing</strong></li>
+    <li>Pilih metode HTTP (GET, POST, PUT, DELETE, dll.)</li>
+    <li>Isi URL endpoint</li>
+    <li>Tambahkan Headers jika diperlukan (contoh: Authorization, Content-Type)</li>
+    <li>Isi Request Body untuk POST/PUT</li>
+    <li>Klik <strong>Send</strong></li>
+    <li>Respons akan ditampilkan di panel bawah</li>
+    <li>Klik <strong>Save</strong> untuk menyimpan ke Collections</li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Request Login</div>
+    <table class="field-table">
+      <tr><td>Method</td><td></td><td>POST</td></tr>
+      <tr><td>URL</td><td></td><td>https://api.jobseeker.company/auth/login</td></tr>
+      <tr><td>Headers</td><td></td><td>Content-Type: application/json</td></tr>
+      <tr><td>Body</td><td></td><td><code>{"email": "test@example.com", "password": "Test123!"}</code></td></tr>
+      <tr><td>Expected Response</td><td></td><td>200 OK dengan token JWT</td></tr>
+    </table>
+  </div>
+
+  <h2>7.2 Tab Collections</h2>
+  <p>Collections menyimpan request yang sudah pernah dikirim dari Manual Testing. Gunakan untuk menjalankan ulang request tanpa harus mengisi ulang.</p>
+  <div class="tip"><strong>💡 Cara menambah collection:</strong> Kirim request dari tab Manual Testing → klik tombol <strong>Save</strong> → request tersimpan otomatis ke Collections.</div>
+
+  <h2>7.3 Tab Environments</h2>
+  <p>Simpan variabel environment (base URL, token, dll.) yang bisa digunakan di semua request.</p>
+  <div class="example">
+    <div class="example-title">📋 Contoh Environment Variables</div>
+    <table>
+      <tr><th>Variabel</th><th>Nilai (Staging)</th><th>Nilai (Production)</th></tr>
+      <tr><td>BASE_URL</td><td>https://staging-api.jobseeker.company</td><td>https://api.jobseeker.company</td></tr>
+      <tr><td>AUTH_TOKEN</td><td>eyJhbGci... (staging token)</td><td>eyJhbGci... (prod token)</td></tr>
+    </table>
+  </div>
+
+  <h2>7.4 Tab OpenAPI Import</h2>
+  <p>Import spesifikasi OpenAPI/Swagger untuk generate collection otomatis.</p>
+  <ol class="steps">
+    <li>Klik tab <strong>OpenAPI Import</strong></li>
+    <li>Paste URL Swagger JSON atau upload file .json/.yaml</li>
+    <li>Klik <strong>Import</strong></li>
+    <li>Semua endpoint akan ter-generate sebagai collection</li>
+  </ol>
+
+  <h2>7.5 Tab Automation</h2>
+  <p>Generate kode Playwright otomatis dari request yang ada di collection.</p>
+  <ol class="steps">
+    <li>Klik tab <strong>Automation</strong></li>
+    <li>Pilih request dari collection</li>
+    <li>Klik <strong>Generate Script</strong></li>
+    <li>Kode Playwright test siap di-copy ke project automation</li>
+  </ol>
+</div>
+
+<!-- BAB 8 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 8</div>
+    <div class="chapter-title">Labs Lainnya</div>
+  </div>
+
+  <h2>8.1 Automation Lab — Playwright Academy</h2>
+  <p>Tutorial interaktif untuk belajar automation testing dengan Playwright.</p>
+  <table>
+    <tr><th>Sub-modul</th><th>Konten</th></tr>
+    <tr><td>Getting Started</td><td>Instalasi Playwright, struktur proyek, konfigurasi</td></tr>
+    <tr><td>Locators</td><td>CSS selector, XPath, role-based locators, text locators</td></tr>
+    <tr><td>Actions</td><td>click, fill, type, check, select, hover, drag-and-drop</td></tr>
+    <tr><td>Assertions</td><td>expect, toBeVisible, toHaveText, toHaveValue</td></tr>
+    <tr><td>Page Objects</td><td>Pola Page Object Model untuk maintainability</td></tr>
+    <tr><td>API Testing</td><td>request context, intercept network, mock API</td></tr>
+  </table>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Kode Playwright (Login Test)</div>
+    <pre style="background:#1e293b; color:#e2e8f0; padding:14px; border-radius:8px; font-size:9.5pt; line-height:1.6; overflow-x:auto;">
+import { test, expect } from '@playwright/test';
+
+test('Login berhasil dengan kredensial valid', async ({ page }) => {
+  await page.goto('https://app.jobseeker.company/login');
+
+  await page.fill('[data-testid="email"]', 'user@example.com');
+  await page.fill('[data-testid="password"]', 'Password123!');
+  await page.click('[data-testid="login-btn"]');
+
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.locator('h1')).toHaveText('Dashboard');
+});</pre>
+  </div>
+
+  <h2>8.2 SQL Lab</h2>
+  <p>Latihan SQL dengan schema HR database yang sudah disediakan.</p>
+  <table>
+    <tr><th>Tabel</th><th>Kolom Utama</th></tr>
+    <tr><td>employees</td><td>id, name, email, department_id, salary, status</td></tr>
+    <tr><td>departments</td><td>id, name, manager_id, budget</td></tr>
+    <tr><td>attendance</td><td>id, employee_id, date, clock_in, clock_out, status</td></tr>
+    <tr><td>leave_requests</td><td>id, employee_id, type, start_date, end_date, status</td></tr>
+  </table>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Query SQL Challenge</div>
+    <pre style="background:#1e293b; color:#e2e8f0; padding:14px; border-radius:8px; font-size:9.5pt; line-height:1.6;">
+-- Challenge: Tampilkan nama karyawan beserta nama departemennya
+SELECT e.name, d.name as department
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+WHERE e.status = 'active'
+ORDER BY d.name, e.name;</pre>
+  </div>
+
+  <h2>8.3 Security Lab</h2>
+  <p>Simulasi dan edukasi OWASP Top 10 vulnerabilities untuk QA.</p>
+  <ul>
+    <li><strong>SQL Injection</strong> — cara mendeteksi dan test SQL injection</li>
+    <li><strong>XSS (Cross-Site Scripting)</strong> — reflected, stored, DOM-based</li>
+    <li><strong>IDOR</strong> — Insecure Direct Object Reference</li>
+    <li><strong>CSRF</strong> — Cross-Site Request Forgery</li>
+    <li>Dan 6 kategori OWASP Top 10 lainnya</li>
+  </ul>
+
+  <h2>8.4 Performance Lab</h2>
+  <p>Panduan dan template script untuk performance testing.</p>
+  <table>
+    <tr><th>Tool</th><th>Konten</th></tr>
+    <tr><td>k6</td><td>Script load test, stress test, spike test, soak test</td></tr>
+    <tr><td>Gatling</td><td>Simulation script, scenario konfigurasi</td></tr>
+    <tr><td>Metrics</td><td>Response time, throughput, error rate, percentile</td></tr>
+  </table>
+
+  <h2>8.5 CI/CD Lab</h2>
+  <p>Konsep dan template untuk integrasi QA ke pipeline CI/CD.</p>
+  <ul>
+    <li>GitHub Actions workflow untuk automated testing</li>
+    <li>Jenkins pipeline dengan test stage</li>
+    <li>GitLab CI dengan Playwright runner</li>
+    <li>Docker container untuk test environment</li>
+  </ul>
+</div>
+
+<!-- BAB 9 -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 9</div>
+    <div class="chapter-title">Environment Manager</div>
+  </div>
+
+  <p>Environment Manager menyimpan konfigurasi environment (URL, username, password) secara terenkripsi per proyek.</p>
+
+  <h2>9.1 Membuat Environment</h2>
+  <ol class="steps">
+    <li>Klik <strong>Environments</strong> di sidebar</li>
+    <li>Klik <strong>+ Tambah Environment</strong></li>
+    <li>Isi nama, tipe (Staging/Production/Dev), dan base URL</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <h2>9.2 Menambah Variabel Environment</h2>
+  <ol class="steps">
+    <li>Klik environment yang ingin ditambah variabel</li>
+    <li>Di bagian Variables, klik <strong>+ Tambah Variabel</strong></li>
+    <li>Isi nama key, nilai, dan deskripsi</li>
+    <li>Centang <strong>Secret</strong> untuk nilai sensitif (akan dienkripsi)</li>
+    <li>Klik <strong>Simpan</strong></li>
+  </ol>
+
+  <div class="example">
+    <div class="example-title">📋 Contoh Konfigurasi Environment</div>
+    <table>
+      <tr><th>Environment</th><th>Key</th><th>Value</th><th>Secret?</th></tr>
+      <tr><td>Staging</td><td>BASE_URL</td><td>https://staging.jobseeker.company</td><td>Tidak</td></tr>
+      <tr><td>Staging</td><td>ADMIN_EMAIL</td><td>admin@staging.com</td><td>Tidak</td></tr>
+      <tr><td>Staging</td><td>ADMIN_PASS</td><td>••••••••</td><td><span class="badge b-red">Ya (Encrypted)</span></td></tr>
+      <tr><td>Production</td><td>BASE_URL</td><td>https://app.jobseeker.company</td><td>Tidak</td></tr>
+    </table>
+  </div>
+
+  <div class="tip"><strong>🔐 Keamanan:</strong> Semua variabel yang ditandai Secret dienkripsi menggunakan AES-256-CBC sebelum disimpan ke database lokal. Nilai tidak bisa dilihat dalam bentuk plain text setelah disimpan.</div>
+</div>
+
+<!-- BAB 10 FAQ -->
+<div class="container">
+  <div class="chapter-header">
+    <div class="chapter-num">Bab 10</div>
+    <div class="chapter-title">FAQ &amp; Troubleshooting</div>
+  </div>
+
+  <h2>Pertanyaan Umum</h2>
+
+  <h3>Q: Di mana data aplikasi tersimpan?</h3>
+  <p>Data tersimpan lokal di: <code>~/Library/Application Support/DiyahQA Hub/testcases.db</code> — file SQLite yang hanya ada di Mac kamu.</p>
+
+  <h3>Q: Bisakah data dipindah ke Mac lain?</h3>
+  <p>Ya. Copy file <code>testcases.db</code> dari Mac lama ke path yang sama di Mac baru.</p>
+
+  <h3>Q: Tombol Fail di Test Plan tidak bisa diklik?</h3>
+  <p>Pastikan status Test Plan adalah <strong>Active</strong> (sudah klik ▶ Mulai). Tombol aksi hanya muncul saat status Active.</p>
+
+  <h3>Q: Transfer bug ke Plane gagal dengan error "Invalid character"?</h3>
+  <p>API Key mengandung karakter tersembunyi. Solusi: buka ⚙️ Plane Settings → hapus dan ketik ulang API Key secara manual (jangan paste) → Simpan.</p>
+
+  <h3>Q: Status di kolom Plane Status menampilkan UUID bukan nama status?</h3>
+  <p>Ini terjadi pada data lama. Klik ikon 🔄 di header kolom Plane Status untuk sync ulang — status akan diperbarui dengan nama yang benar.</p>
+
+  <h3>Q: Server Plane timeout (Gateway 504)?</h3>
+  <p>Server Plane sedang down. Tunggu hingga server kembali online sebelum mencoba transfer atau sync ulang.</p>
+
+  <h3>Q: Notifikasi Google Chat tidak terkirim?</h3>
+  <p>Periksa: (1) Webhook URL sudah diisi di Plane Settings, (2) URL webhook masih valid dan aktif di Google Chat, (3) Koneksi internet aktif saat transfer.</p>
+
+  <h3>Q: Bagaimana cara update API Key Plane?</h3>
+  <p>Klik tombol <strong>⚙️ Plane</strong> di halaman Bug Reports → hapus isi field API Key → ketik API Key baru → klik Simpan.</p>
+
+  <h3>Q: Collections di API Lab kosong?</h3>
+  <p>Collection diisi melalui tab Manual Testing. Kirim request → klik tombol <strong>Save</strong> → request tersimpan ke Collections.</p>
+
+  <h2>Pesan Error Umum</h2>
+  <table>
+    <tr><th>Pesan Error</th><th>Penyebab</th><th>Solusi</th></tr>
+    <tr><td>Transfer gagal: Plane API belum dikonfigurasi</td><td>API Key atau Workspace Slug kosong</td><td>Isi konfigurasi di ⚙️ Plane Settings</td></tr>
+    <tr><td>Gagal mendapatkan initial state dari Plane</td><td>Project ID salah atau tidak ada state</td><td>Periksa Project ID di Plane Settings</td></tr>
+    <tr><td>HTTP 401: Unauthorized</td><td>API Key tidak valid atau expired</td><td>Generate API Key baru di Plane</td></tr>
+    <tr><td>Koneksi timeout</td><td>Server tidak merespons dalam 10 detik</td><td>Cek koneksi internet atau status server Plane</td></tr>
+    <tr><td>Nama dan project wajib diisi</td><td>Form Test Plan belum lengkap</td><td>Isi nama plan dan pilih proyek</td></tr>
+  </table>
+
+  <footer>
+    <p>DiyahQA Hub — Dokumentasi Tutorial Lengkap</p>
+    <p>Versi 1.0.0 &nbsp;|&nbsp; Agustus 2026 &nbsp;|&nbsp; Dibuat untuk keperluan penelitian dan kuesioner</p>
+    <p style="margin-top:8px;"><strong>Cara Save sebagai PDF:</strong> Buka file ini di browser → Cmd+P (Print) → pilih "Save as PDF" → klik Save</p>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>DiyahQA Hub - Architecture Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; padding: 32px; }
+  h1 { text-align: center; color: #7c3aed; font-size: 28px; margin-bottom: 8px; letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #94a3b8; margin-bottom: 32px; font-size: 14px; }
+
+  .diagram { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+
+  /* Layers */
+  .layer { border-radius: 12px; padding: 16px; position: relative; }
+  .layer-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; opacity: 0.7; }
+
+  .layer-user   { background: #1e293b; border: 2px solid #334155; }
+  .layer-react  { background: #0c1a2e; border: 2px solid #1d4ed8; }
+  .layer-ipc    { background: #1a1a2e; border: 2px dashed #7c3aed; text-align: center; padding: 10px; }
+  .layer-main   { background: #0f1f0f; border: 2px solid #15803d; }
+  .layer-db     { background: #1a0f0f; border: 2px solid #b91c1c; }
+  .layer-ext    { background: #0f172a; border: 2px solid #d97706; }
+
+  /* Boxes */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+  .box { border-radius: 8px; padding: 12px 14px; font-size: 13px; flex: 1; min-width: 120px; }
+  .box-title { font-weight: 700; font-size: 12px; margin-bottom: 6px; }
+  .box-items { font-size: 11px; color: #94a3b8; line-height: 1.6; }
+  .box-items span { display: block; }
+
+  .box-blue   { background: #1e3a5f; border: 1px solid #3b82f6; }
+  .box-purple { background: #2d1b69; border: 1px solid #7c3aed; }
+  .box-green  { background: #14532d; border: 1px solid #16a34a; }
+  .box-red    { background: #4c0519; border: 1px solid #dc2626; }
+  .box-orange { background: #431407; border: 1px solid #d97706; }
+  .box-teal   { background: #0d3d3d; border: 1px solid #0d9488; }
+  .box-pink   { background: #4a0d2e; border: 1px solid #db2777; }
+  .box-slate  { background: #1e293b; border: 1px solid #475569; }
+  .box-yellow { background: #422006; border: 1px solid #ca8a04; }
+
+  /* Arrow */
+  .arrow { text-align: center; color: #7c3aed; font-size: 22px; margin: 4px 0; }
+  .arrow-label { font-size: 11px; color: #7c3aed; margin-top: -4px; margin-bottom: 4px; }
+
+  /* External row */
+  .ext-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .ext-box { border-radius: 10px; padding: 14px 18px; text-align: center; min-width: 200px; flex: 1; max-width: 280px; }
+  .ext-box .box-title { font-size: 13px; margin-bottom: 8px; }
+  .ext-box .box-items { font-size: 11px; }
+
+  .badge { display: inline-block; background: #7c3aed; color: white; border-radius: 4px; padding: 1px 6px; font-size: 10px; margin: 2px 0; }
+  .badge-green { background: #16a34a; }
+  .badge-blue { background: #1d4ed8; }
+  .badge-red { background: #dc2626; }
+  .badge-orange { background: #d97706; }
+
+  .ipc-text { color: #a78bfa; font-size: 13px; font-weight: 600; }
+  .ipc-sub { color: #6d28d9; font-size: 11px; margin-top: 4px; }
+
+  .section-title { font-weight: 700; color: #7c3aed; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* Flow diagram at bottom */
+  .flow { background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 20px; margin-top: 8px; }
+  .flow-title { font-weight: 700; color: #f59e0b; margin-bottom: 16px; font-size: 14px; }
+  .flow-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .flow-box { background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 6px 12px; font-size: 12px; }
+  .flow-arrow { color: #7c3aed; font-size: 16px; }
+  .flow-green { border-color: #16a34a; color: #4ade80; }
+  .flow-purple { border-color: #7c3aed; color: #a78bfa; }
+  .flow-blue { border-color: #3b82f6; color: #60a5fa; }
+  .flow-orange { border-color: #d97706; color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<h1>🛠 DiyahQA Hub</h1>
+<p class="subtitle">Architecture Diagram — Electron + React Desktop Application</p>
+
+<div class="diagram">
+
+  <!-- USER LAYER -->
+  <div class="layer layer-user">
+    <div class="layer-label">👤 User</div>
+    <div class="row">
+      <div class="box box-slate" style="text-align:center; max-width:200px; margin:0 auto;">
+        <div class="box-title" style="color:#f1f5f9; font-size:15px;">QA Engineer</div>
+        <div class="box-items">Menggunakan DiyahQA Hub<br>untuk mengelola QA activities</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↕</div>
+  <div style="text-align:center; color:#94a3b8; font-size:11px; margin-top:-10px; margin-bottom:4px;">Interaksi UI</div>
+
+  <!-- RENDERER LAYER -->
+  <div class="layer layer-react">
+    <div class="layer-label" style="color:#3b82f6;">⚛️ Renderer Process — React UI</div>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="box box-blue">
+        <div class="box-title" style="color:#93c5fd;">📊 Dashboard</div>
+        <div class="box-items">
+          <span>Statistik test cases</span>
+          <span>Bug report summary</span>
+          <span>Project overview</span>
+        </div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">🐛 Bug Reports</div>
+        <div class="box-items">
+          <span>CRUD bug report</span>
+          <span>Filter & sort</span>
+          <span>✈️ Transfer ke Plane</span>
+          <span>🔄 Sync status</span>
+          <span>Plane Status Badge</span>
+          <span>Bulk transfer</span>
+        </div>
+      </div>
+      <div class="box box-teal">
+        <div class="box-title" style="color:#5eead4;">✅ Test Cases</div>
+        <div class="box-items">
+          <span>CRUD test cases</span>
+          <span>Status history</span>
+          <span>Import CSV / Allure</span>
+          <span>Export CSV</span>
+        </div>
+      </div>
+      <div class="box box-purple">
+        <div class="box-title" style="color:#c4b5fd;">📋 Test Plans</div>
+        <div class="box-items">
+          <span>Buat test plan</span>
+          <span>Assign test cases</span>
+          <span>Track execution</span>
+          <span>Evidence per item</span>
+        </div>
+      </div>
+      <div class="box box-pink">
+        <div class="box-title" style="color:#f9a8d4;">📝 Requirements</div>
+        <div class="box-items">
+          <span>Kelola requirements</span>
+          <span>Link ke test cases</span>
+          <span>Traceability matrix</span>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="box box-green">
+        <div class="box-title" style="color:#86efac;">🔬 SQL Lab</div>
+        <div class="box-items">
+          <span>HR Schema</span>
+          <span>SQL Challenges</span>
+          <span>In-browser execution</span>
+        </div>
+      </div>
+      <div class="box box-orange">
+        <div class="box-title" style="color:#fdba74;">🔒 Security Lab</div>
+        <div class="box-items">
+          <span>OWASP Top 10</span>
+          <span>Simulasi serangan</span>
+          <span>Security concepts</span>
+        </div>
+      </div>
+      <div class="box box-yellow">
+        <div class="box-title" style="color:#fde047;">⚡ Performance Lab</div>
+        <div class="box-items">
+          <span>k6 scripts</span>
+          <span>Gatling scenarios</span>
+          <span>Load test patterns</span>
+        </div>
+      </div>
+      <div class="box box-blue">
+        <div class="box-title" style="color:#93c5fd;">🚀 CI/CD Lab</div>
+        <div class="box-items">
+          <span>Pipeline concepts</span>
+          <span>GitHub Actions</span>
+          <span>Jenkins, GitLab CI</span>
+        </div>
+      </div>
+      <div class="box box-teal">
+        <div class="box-title" style="color:#5eead4;">🎭 Automation Lab</div>
+        <div class="box-items">
+          <span>Playwright Academy</span>
+          <span>Tutorial interaktif</span>
+          <span>Best practices</span>
+        </div>
+      </div>
+      <div class="box box-slate">
+        <div class="box-title" style="color:#cbd5e1;">🌐 API Lab</div>
+        <div class="box-items">
+          <span>REST API concepts</span>
+          <span>Testing strategies</span>
+          <span>Postman guides</span>
+        </div>
+      </div>
+      <div class="box box-purple">
+        <div class="box-title" style="color:#c4b5fd;">📁 TC Library</div>
+        <div class="box-items">
+          <span>Template test cases</span>
+          <span>Reusable scenarios</span>
+          <span>Usage tracking</span>
+        </div>
+      </div>
+      <div class="box box-pink">
+        <div class="box-title" style="color:#f9a8d4;">📄 Doc Lab</div>
+        <div class="box-items">
+          <span>Dokumentasi QA</span>
+          <span>Version history</span>
+          <span>Categories</span>
+        </div>
+      </div>
+      <div class="box box-green">
+        <div class="box-title" style="color:#86efac;">🌍 Environments</div>
+        <div class="box-items">
+          <span>Staging/Prod/Dev</span>
+          <span>Env variables</span>
+          <span>Encrypted secrets</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IPC -->
+  <div class="layer layer-ipc">
+    <div class="ipc-text">⚡ IPC Bridge (preload.js — contextBridge)</div>
+    <div class="ipc-sub">ipcRenderer.invoke ↔ ipcMain.handle — Keamanan: contextIsolation = true</div>
+  </div>
+
+  <!-- MAIN PROCESS -->
+  <div class="layer layer-main">
+    <div class="layer-label" style="color:#16a34a;">⚙️ Main Process — Electron / Node.js</div>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="box box-green" style="flex:2;">
+        <div class="box-title" style="color:#86efac;">📡 IPC Handlers (main.js)</div>
+        <div class="row" style="margin-top:8px; gap:8px;">
+          <div style="background:#0f2d1a; border-radius:6px; padding:8px; flex:1; font-size:11px;">
+            <div style="color:#4ade80; font-weight:600; margin-bottom:4px;">Core Handlers</div>
+            <span style="color:#86efac;">get/create/update/delete</span><br>
+            <span style="color:#94a3b8;">projects, testcases, bug-reports</span><br>
+            <span style="color:#94a3b8;">test-plans, requirements</span><br>
+            <span style="color:#94a3b8;">tc-library, documents</span><br>
+            <span style="color:#94a3b8;">environments, credentials</span>
+          </div>
+          <div style="background:#1a0f2d; border-radius:6px; padding:8px; flex:1; font-size:11px; border:1px solid #7c3aed;">
+            <div style="color:#a78bfa; font-weight:600; margin-bottom:4px;">✈️ Plane Integration</div>
+            <span style="color:#c4b5fd;">save-plane-config</span><br>
+            <span style="color:#c4b5fd;">get-plane-config</span><br>
+            <span style="color:#c4b5fd;">transfer-bug-to-plane</span><br>
+            <span style="color:#c4b5fd;">transfer-bugs-bulk-to-plane</span><br>
+            <span style="color:#c4b5fd;">sync-plane-status</span>
+          </div>
+          <div style="background:#1a1000; border-radius:6px; padding:8px; flex:1; font-size:11px;">
+            <div style="color:#fbbf24; font-weight:600; margin-bottom:4px;">📊 Import/Export</div>
+            <span style="color:#fde68a;">import-csv (test cases)</span><br>
+            <span style="color:#fde68a;">import-allure (JSON)</span><br>
+            <span style="color:#fde68a;">import-bug-csv</span><br>
+            <span style="color:#fde68a;">import-bug-plane</span><br>
+            <span style="color:#fde68a;">sql-lab-run-query</span>
+          </div>
+        </div>
+      </div>
+      <div class="box box-teal" style="flex:1;">
+        <div class="box-title" style="color:#5eead4;">🔧 planeHelpers.js</div>
+        <div class="box-items">
+          <span>planeRequest()</span>
+          <span>getTodoStateId()</span>
+          <span>mapBugToPlanePayload()</span>
+          <span>buildPlaneIssueUrl()</span>
+          <span>maskApiKey()</span>
+          <span>isConfigValid()</span>
+          <span>getPlaneStatusClass()</span>
+          <span>shouldAutoSync()</span>
+          <span>sendGoogleChatNotification()</span>
+          <span>getMemberIdByEmail()</span>
+          <span>getStateNameById()</span>
+        </div>
+      </div>
+      <div class="box box-red" style="flex:1;">
+        <div class="box-title" style="color:#fca5a5;">🔐 Encryption</div>
+        <div class="box-items">
+          <span>encryptVal()</span>
+          <span>decryptVal()</span>
+          <span style="margin-top:6px; color:#ef4444;">AES-256-CBC</span>
+          <span>Untuk:</span>
+          <span>- API Keys Plane</span>
+          <span>- Env variables</span>
+          <span>- Credentials</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DB LAYER -->
+  <div class="layer layer-db">
+    <div class="layer-label" style="color:#ef4444;">🗄️ Database — SQLite (sql.js, pure JS)</div>
+    <div class="row">
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">projects</div>
+        <div class="box-items"><span>id, name, description</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">testcases</div>
+        <div class="box-items"><span>id, title, module, status, scenario, evidence</span></div>
+      </div>
+      <div class="box box-red" style="border-color:#7c3aed;">
+        <div class="box-title" style="color:#fca5a5;">bug_reports 🔗</div>
+        <div class="box-items">
+          <span>id, title, severity, priority</span>
+          <span style="color:#a78bfa;">+ plane_issue_id</span>
+          <span style="color:#a78bfa;">+ plane_issue_url</span>
+          <span style="color:#a78bfa;">+ plane_status</span>
+        </div>
+      </div>
+      <div class="box box-red" style="border-color:#7c3aed;">
+        <div class="box-title" style="color:#fca5a5;">plane_config 🔗</div>
+        <div class="box-items">
+          <span>api_key_enc (AES)</span>
+          <span>workspace_slug</span>
+          <span>project_id</span>
+          <span style="color:#a78bfa;">base_url</span>
+          <span style="color:#a78bfa;">assignee_email</span>
+          <span style="color:#a78bfa;">gchat_webhook_url</span>
+        </div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">test_plans</div>
+        <div class="box-items"><span>+ test_plan_items</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">requirements</div>
+        <div class="box-items"><span>+ req_tc_links</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">environments</div>
+        <div class="box-items"><span>+ env_variables (enc)</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">documents</div>
+        <div class="box-items"><span>+ document_versions</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">tc_library</div>
+        <div class="box-items"><span>Template test cases</span></div>
+      </div>
+      <div class="box box-red">
+        <div class="box-title" style="color:#fca5a5;">project_credentials</div>
+        <div class="box-items"><span>+ env_credentials (enc)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↕</div>
+  <div style="text-align:center; color:#94a3b8; font-size:11px; margin-top:-10px; margin-bottom:4px;">HTTPS via Node.js built-in</div>
+
+  <!-- EXTERNAL -->
+  <div class="layer layer-ext">
+    <div class="layer-label" style="color:#d97706;">🌐 External Services</div>
+    <div class="ext-row">
+      <div class="ext-box" style="background:#1a0f2d; border:2px solid #7c3aed;">
+        <div class="box-title" style="color:#a78bfa; font-size:14px;">✈️ Plane API</div>
+        <div class="box-items" style="text-align:left;">
+          <span style="color:#94a3b8;">workspace.jobseeker.company/jsc</span>
+          <br>
+          <span style="display:inline-block; background:#2d1b69; color:#c4b5fd; padding:2px 8px; border-radius:4px; margin:2px 0; font-size:11px;">GET /states/</span>
+          <span style="display:inline-block; background:#2d1b69; color:#c4b5fd; padding:2px 8px; border-radius:4px; margin:2px 0; font-size:11px;">POST /issues/</span>
+          <span style="display:inline-block; background:#2d1b69; color:#c4b5fd; padding:2px 8px; border-radius:4px; margin:2px 0; font-size:11px;">GET /issues/{id}/</span>
+          <span style="display:inline-block; background:#2d1b69; color:#c4b5fd; padding:2px 8px; border-radius:4px; margin:2px 0; font-size:11px;">GET /members/</span>
+          <br>
+          <span style="color:#6b7280; font-size:11px; margin-top:4px; display:block;">Auth: X-API-Key header</span>
+          <span style="color:#6b7280; font-size:11px;">Configurable Base URL</span>
+        </div>
+      </div>
+      <div class="ext-box" style="background:#0d2a1a; border:2px solid #16a34a;">
+        <div class="box-title" style="color:#4ade80; font-size:14px;">💬 Google Chat Webhook</div>
+        <div class="box-items" style="text-align:left;">
+          <span style="color:#94a3b8;">chat.googleapis.com</span>
+          <br>
+          <span style="color:#86efac; font-size:11px;">POST /v1/spaces/{id}/messages</span>
+          <br><br>
+          <div style="background:#0a1f11; border-radius:6px; padding:8px; font-size:11px; color:#86efac; margin-top:4px;">
+            <strong>Format Notifikasi:</strong><br>
+            🐛 Bug baru ditransfer ke Plane<br>
+            Bug ID | Module | Environment<br>
+            Severity | Status | Assign To<br>
+            🔗 Link Workspace Plane
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOW DIAGRAM -->
+  <div class="flow">
+    <div class="flow-title">🔄 Alur Transfer Bug ke Plane</div>
+    <div class="flow-row">
+      <div class="flow-box">QA klik ✈️</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-purple">Modal Input Email Assignee</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-blue">IPC: transfer-bug-to-plane</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-purple">GET /states/ → TodoState</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-purple">POST /issues/ → issue created</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-green">DB: simpan plane_issue_id</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-orange">Google Chat notifikasi</div>
+    </div>
+    <div class="flow-title" style="margin-top:16px;">🔄 Alur Sync Status</div>
+    <div class="flow-row">
+      <div class="flow-box">Mount / 🔄 klik</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-blue">IPC: sync-plane-status</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-purple">GET /issues/{id}/ per bug</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-purple">getStateNameById() (cache)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-green">DB: update plane_status</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-blue">UI: refresh badge</div>
+    </div>
+  </div>
+
+  <div style="text-align:center; color:#475569; font-size:11px; margin-top:16px; padding-top:16px; border-top:1px solid #1e293b;">
+    DiyahQA Hub © 2026 — Built with Electron + React + SQLite | All data stored locally
+  </div>
+
+</div>
+</body>
+</html>

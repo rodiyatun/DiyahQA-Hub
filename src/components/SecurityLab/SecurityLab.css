@@ -1,0 +1,304 @@
+/* ── Security Lab Layout ────────────────────────────────────────── */
+.seclab-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  gap: 16px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.seclab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.seclab-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.seclab-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.seclab-tab:hover { color: var(--text-primary); }
+.seclab-tab.active { color: #ef4444; border-bottom-color: #ef4444; }
+
+/* ── OWASP Cards ────────────────────────────────────────────────── */
+.owasp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.owasp-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.owasp-card:hover { border-color: #ef4444; background: var(--bg-hover); }
+.owasp-card.active { border-color: #ef4444; background: rgba(239,68,68,0.05); }
+
+.owasp-rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.owasp-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.owasp-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.owasp-severity {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.severity-critical { background: rgba(239,68,68,0.15); color: #ef4444; }
+.severity-high { background: rgba(249,115,22,0.15); color: #f97316; }
+.severity-medium { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+/* ── Detail Panel ───────────────────────────────────────────────── */
+.owasp-detail {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 20px;
+  flex: 1;
+}
+
+.owasp-detail h3 { font-size: 16px; color: var(--text-primary); margin-bottom: 12px; }
+.owasp-detail h4 { font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin: 16px 0 8px; letter-spacing: 0.05em; }
+
+.owasp-detail p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px; }
+
+.example-block {
+  background: rgba(239,68,68,0.05);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #ef4444;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+
+.prevention-list { padding-left: 16px; }
+.prevention-list li { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+
+.test-case-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.test-case-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.tc-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tc-positive { background: rgba(239,68,68,0.15); color: #ef4444; }
+.tc-negative { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+/* ── Checklist ──────────────────────────────────────────────────── */
+.checklist-categories {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.checklist-cat-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.checklist-cat-btn:hover { background: var(--bg-hover); }
+.checklist-cat-btn.active { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #ef4444; }
+
+.checklist-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checklist-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.checklist-item:hover { background: var(--bg-hover); }
+.checklist-item.checked { background: rgba(34,197,94,0.05); border-color: rgba(34,197,94,0.3); }
+
+.checklist-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 11px;
+}
+.checklist-item.checked .checklist-checkbox {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: white;
+}
+
+.checklist-content { flex: 1; }
+.checklist-text { font-size: 13px; color: var(--text-primary); margin-bottom: 2px; }
+.checklist-detail { font-size: 11px; color: var(--text-muted); }
+
+.checklist-risk {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.checklist-progress {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.checklist-progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+/* ── Header Analyzer ────────────────────────────────────────────── */
+.header-analyzer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header-input-area {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.header-input-area textarea {
+  width: 100%;
+  min-height: 140px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 12px;
+  padding: 14px 16px;
+  border: none;
+  outline: none;
+  resize: vertical;
+}
+
+.header-toolbar {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.header-result-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  align-items: flex-start;
+}
+.header-result-item.pass { border-left: 3px solid #22c55e; }
+.header-result-item.fail { border-left: 3px solid #ef4444; }
+.header-result-item.warn { border-left: 3px solid #f59e0b; }
+
+.header-result-icon { font-size: 16px; flex-shrink: 0; }
+.header-result-content { flex: 1; }
+.header-result-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.header-result-desc { font-size: 12px; color: var(--text-secondary); }
+.header-result-value { font-size: 11px; font-family: monospace; color: var(--text-muted); margin-top: 4px; }
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.score-a { background: rgba(34,197,94,0.15); color: #22c55e; }
+.score-b { background: rgba(99,102,241,0.15); color: var(--accent); }
+.score-c { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.score-d { background: rgba(249,115,22,0.15); color: #f97316; }
+.score-f { background: rgba(239,68,68,0.15); color: #ef4444; }
