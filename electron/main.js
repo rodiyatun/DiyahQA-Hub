@@ -339,12 +339,18 @@ function run(sql, params = []) {
 
 // ─── Window ──────────────────────────────────────────────────────────────────
 function createWindow() {
+  const isMac = process.platform === 'darwin';
+  const isWin = process.platform === 'win32';
+
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 700,
-    titleBarStyle: 'hiddenInset',
+    // macOS: inset title bar; Windows/Linux: default frame
+    titleBarStyle: isMac ? 'hiddenInset' : 'default',
+    // Windows: remove default frame and use custom (optional, bisa di-comment jika ingin frame standar)
+    frame: !isWin ? undefined : true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -1321,7 +1327,17 @@ const PROJECTS_DIR = path.join(os.homedir(), 'DiyahQA-Projects');
 
 // ── Resolve node full path
 function resolveNode() {
-  if (process.platform === 'win32') return 'node';
+  if (process.platform === 'win32') {
+    // Windows: cari di PATH environment dan lokasi umum
+    const candidates = [
+      path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs', 'node.exe'),
+      path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'nodejs', 'node.exe'),
+      path.join(os.homedir(), 'AppData', 'Roaming', 'nvm', 'current', 'node.exe'),
+      'node', // fallback ke PATH
+    ];
+    for (const c of candidates) { if (c !== 'node' && fs.existsSync(c)) return c; }
+    return 'node';
+  }
   const candidates = [
     '/usr/local/bin/node',     // Intel macOS / nvm default symlink
     '/opt/homebrew/bin/node',  // Apple Silicon homebrew
@@ -1356,10 +1372,23 @@ function resolveNode() {
 // ── Build enriched env for spawn (inject PATH so npx can find node)
 function buildSpawnEnv() {
   const nodePath = resolveNode();
-  const nodeDir = path.dirname(nodePath); // e.g. /usr/local/bin
+  const nodeDir = path.dirname(nodePath);
   const existingPath = process.env.PATH || '';
-  // Prepend common locations so npx / node / npm are always findable
-  const extraPaths = [
+
+  let extraPaths;
+  if (process.platform === 'win32') {
+    // Windows: tambah lokasi umum Node.js
+    extraPaths = [
+      nodeDir,
+      path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs'),
+      path.join(os.homedir(), 'AppData', 'Roaming', 'npm'),
+      path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WinGet', 'Packages'),
+    ];
+    const merged = [...new Set([...extraPaths, ...existingPath.split(';')])].join(';');
+    return { ...process.env, PATH: merged };
+  }
+
+  extraPaths = [
     nodeDir,
     '/usr/local/bin',
     '/opt/homebrew/bin',

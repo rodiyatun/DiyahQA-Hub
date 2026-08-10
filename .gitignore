@@ -33,9 +33,6 @@ testcases.db
 # Kiro IDE
 .kiro/
 
-# VSCode
-.vscode/
-
 # Logs
 npm-debug.log*
 yarn-debug.log*

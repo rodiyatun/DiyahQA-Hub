@@ -1,0 +1,114 @@
+name: Build DiyahQA Hub
+
+on:
+  push:
+    tags:
+      - 'v*'        # trigger saat push tag seperti v1.0.1, v1.1.0
+  workflow_dispatch:  # trigger manual dari GitHub Actions UI
+
+jobs:
+  build-mac:
+    name: Build macOS (arm64)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React
+        run: npm run build
+
+      - name: Package Electron (macOS)
+        run: npx electron-builder --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiyahQA-Hub-macOS
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 30
+
+  build-windows:
+    name: Build Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React
+        run: npm run build
+
+      - name: Package Electron (Windows)
+        run: npx electron-builder --win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiyahQA-Hub-Windows
+          path: |
+            dist/*.exe
+          retention-days: 30
+
+  release:
+    name: Create GitHub Release
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: DiyahQA-Hub-macOS
+          path: artifacts/mac
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: DiyahQA-Hub-Windows
+          path: artifacts/win
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DiyahQA Hub ${{ github.ref_name }}
+          body: |
+            ## DiyahQA Hub ${{ github.ref_name }}
+
+            ### Download
+            - **macOS** (Apple Silicon): `DiyahQA-Hub-*-arm64.dmg`
+            - **Windows** (x64): `DiyahQA-Hub-Setup-*.exe` atau `DiyahQA-Hub-*.exe` (portable)
+
+            ### Instalasi
+            **macOS:** Buka `.dmg` → drag ke Applications
+            **Windows:** Jalankan `.exe` installer, atau gunakan versi portable
+          files: |
+            artifacts/mac/*.dmg
+            artifacts/mac/*.zip
+            artifacts/win/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -51,7 +51,7 @@
     ]
   },
   "build": {
-    "appId": "com.testcase.management",
+    "appId": "com.diyahqa.hub",
     "productName": "DiyahQA Hub",
     "extraMetadata": {
       "main": "electron/main.js"
@@ -62,6 +62,30 @@
         "dmg",
         "zip"
       ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DiyahQA Hub"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
     },
     "files": [
       "build/**/*",
