@@ -1,112 +1,141 @@
-# Test Case Manager - Desktop App
+# 🔍 DiyahQA Hub
 
-Aplikasi desktop testcase management untuk macOS menggunakan Electron + React.
+**QA Tools all-in-one** — Test Case Management, Bug Reports, API Lab, Automation Lab, CI/CD Lab, dan banyak lagi. Dibangun dengan Electron, berjalan offline di macOS dan Windows.
 
-## ✨ Fitur
+---
 
-### ✅ Sudah diimplementasi:
-- ✅ **Dashboard** — Overview total TC, pass rate, pie chart status distribution
-- ✅ **Project Management** — Buat, edit, hapus project
-- ✅ **CRUD Test Case** — Tambah, edit, hapus, search, filter test case
-- ✅ **Status Tracking** — Status: Pending, Pass, Fail, Skip, Blocked
-- ✅ **History** — Track perubahan status tiap test case
-- ✅ **Import CSV** — Import test case dari file CSV
-- ✅ **Export CSV** — Export test case ke CSV
-- ✅ **Dark Theme** — UI modern dengan dark theme
-- ✅ **SQLite Database** — Data tersimpan lokal di macOS
+## 📥 Download & Install
 
-### 📝 Catatan:
-- Export Excel/PDF sudah diinclude library (`xlsx`, `jspdf`) tapi belum diimplementasi di UI — bisa dikembangkan sendiri nanti
+### macOS
+1. Download **`DiyahQA-Hub-x.x.x-arm64.dmg`** dari [Releases](https://github.com/rodiyatun/DiyahQA-Hub/releases/latest)
+2. Buka file `.dmg` → drag **DiyahQA Hub** ke folder Applications
+3. Pertama kali buka: klik kanan → **Open** → Open (bypass Gatekeeper)
 
-## 🚀 Installation
+### Windows
+1. Download **`DiyahQA-Hub-Setup-x.x.x.exe`** dari [Releases](https://github.com/rodiyatun/DiyahQA-Hub/releases/latest)
+2. Jalankan installer → ikuti wizard → klik Finish
+3. Buka dari Start Menu atau Desktop shortcut
 
+> Tidak perlu install Node.js, Python, atau dependencies lain. Semua sudah terbundle.
+
+---
+
+## ✨ Fitur Utama
+
+### 📋 Test Case Management
+- Buat, edit, filter, dan export test case per project
+- Import dari CSV dan Allure JSON
+- Status tracking: Pending / Pass / Fail / Skip / Blocked
+- **🤖 AI Generate TC** — generate test case otomatis via OpenAI atau Gemini
+- **🎭 Generate Playwright** — convert TC manual jadi `.spec.ts` otomatis
+
+### � Bug Report
+- Manajemen bug report lengkap (severity, priority, status)
+- **Auto klasifikasi FE/BE/CI-CD** dari judul dan deskripsi bug
+- Transfer ke **Plane** project management (single & bulk)
+- Notifikasi **Google Chat** saat bug ditransfer
+- Import dari CSV dan Plane export
+
+### � API Lab
+- HTTP request builder (seperti Postman)
+- **Import Postman Collection** v2.0 & v2.1
+- Assertion builder (status, body, JSON path, header, duration)
+- Environment variables dengan placeholder `{{variable}}`
+- Generate Playwright API test suite otomatis
+- OpenAPI / Swagger importer
+
+### 🤖 Automation Lab
+- Playwright project manager (`~/DiyahQA-Projects/`)
+- Script editor, recorder (codegen), execution runner
+- AI Generator: rule-based + OpenAI
+- Failure Center, Locator Inspector, Allure Report
+
+### ⚙️ CI/CD Lab
+- Pipeline builder (GitHub Actions, GitLab CI, Jenkins)
+- Pipeline simulator & visualizer
+- YAML validator
+- **🛡️ Deployment Readiness Gate** — polling versi FE/BE/BFF sebelum test, auto retry, notif Google Chat
+- **🚀 Trigger Pipeline** — trigger GitHub Actions, GitLab, Jenkins, atau webhook custom
+
+### 🗄️ SQL Lab
+- SQL editor dengan 3 schema (HR, E-commerce, Banking)
+- Tantangan SQL bertingkat (Easy → Expert)
+
+### 🔒 Security Lab
+- Materi OWASP Top 10 + ASVS
+- SQL Injection, XSS, CSRF, Auth bypass simulator
+
+### 📊 Performance Lab
+- Checklist performa, latency calculator, load testing guide
+
+### � Environment Manager
+- Kelola environment (Staging, UAT, Production) per project
+- Variabel terenkripsi AES-256
+
+### 📁 TC Library, Test Plans, Requirements, Doc Lab
+- Reusable test case library
+- Test run execution dengan tracking status
+- Traceability matrix (Requirement → TC)
+- Documentation editor dengan version history
+
+---
+
+## 🔐 Keamanan Data
+
+Semua data disimpan **lokal di mesin kamu**:
+- Database SQLite: `~/Library/Application Support/testcase-management/` (Mac) atau `%APPDATA%\testcase-management\` (Windows)
+- Credentials (password, API key, env variables) dienkripsi **AES-256-CBC**
+- Tidak ada data yang dikirim ke server eksternal (kecuali integrasi Plane/Google Chat yang kamu konfigurasi sendiri)
+
+---
+
+## 🛠️ Untuk Developer
+
+### Requirement
+- Node.js 20+
+- npm
+
+### Setup & Run
 ```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Development mode
-npm run dev
-
-# Build distributable app
-npm run package
+git clone https://github.com/rodiyatun/DiyahQA-Hub.git
+cd DiyahQA-Hub
+npm install
+npm run dev          # development mode (React + Electron)
 ```
 
-## 📂 Struktur File
-
-```
-testcase-app/
-├── electron/
-│   ├── main.js          # Electron main process + SQLite DB handler
-│   └── preload.js       # IPC bridge
-├── src/
-│   ├── components/
-│   │   ├── Sidebar.js           # Sidebar dengan project list
-│   │   ├── Dashboard.js         # Dashboard stats + pie chart
-│   │   ├── TestCaseList.js      # Tabel test case + filter/search
-│   │   ├── TestCaseModal.js     # Form tambah/edit TC
-│   │   ├── TestCaseDetailModal.js  # Detail TC + history
-│   │   └── ProjectModal.js      # Form buat/edit project
-│   ├── App.js
-│   ├── index.js
-│   └── index.css
-├── public/
-│   └── index.html
-└── package.json
+### Build
+```bash
+npm run package      # build untuk OS saat ini (Mac/Windows/Linux)
 ```
 
-## 🗄️ Database Schema
-
-### `projects`
-- id, name, description, created_at, updated_at
-
-### `testcases`
-- id, project_id, no, title, website, module, section, test_data, scenario, expected_result, status, evidence, note, created_at, updated_at
-
-### `status_history`
-- id, testcase_id, old_status, new_status, changed_at, note
-
-## 📥 Import CSV Format
-
-File CSV yang sudah kamu buat bisa langsung diimport. Format kolom:
-
-```
-No,Title,Website,Module,Section,Test Data,Scenario,Expected Result,Status,Evidence,Note
+### Build via GitHub Actions
+Push tag untuk trigger auto-build Mac + Windows:
+```bash
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
-Contoh:
-```csv
-No,Title,Website,Module,Section,Test Data,Scenario,Expected Result,Status,Evidence,Note
-CNA-001,Test Login,ATS V6,Auth,Login Page,"email: test@mail.com","1. Buka login page\n2. Isi email dan password\n3. Klik login",User berhasil login,,Positive Case
-```
+---
 
-## 🎨 Customization
+## 🧰 Tech Stack
 
-- **Theme colors** — edit `src/index.css` bagian `:root {}`
-- **Status options** — edit array `STATUS_OPTIONS` di `TestCaseList.js` dan `TestCaseModal.js`
-- **Columns tabel** — edit `TestCaseList.js` di bagian `<thead>`
+| Layer | Tech |
+|---|---|
+| UI | React 18, Recharts |
+| Desktop | Electron 29 |
+| Database | sql.js (SQLite in-memory + file) |
+| Automation | Playwright |
+| Build | electron-builder, react-scripts |
+| CI/CD | GitHub Actions |
 
-## 🐞 Troubleshooting
+---
 
-**npm install timeout:**
-- Coba: `npm install --legacy-peer-deps`
-- Atau: Hapus `node_modules` dan `package-lock.json`, lalu `npm install` lagi
+## 📄 Lisensi
 
-**Electron tidak bisa dibuka:**
-- Pastikan Xcode Command Line Tools sudah terinstall: `xcode-select --install`
+MIT License — bebas digunakan dan dimodifikasi.
 
-**Database tidak muncul:**
-- Database tersimpan di: `~/Library/Application Support/testcase-management/testcases.db`
+---
 
-## 📝 Next Steps (jika ingin dikembangkan)
-
-1. **Export Excel** — sudah ada library `xlsx`, tinggal implement fungsi export di `TestCaseList.js`
-2. **Export PDF** — sudah ada `jspdf` + `jspdf-autotable`, tinggal implement
-3. **Attachment file** — untuk evidence, bisa implement upload file dan simpan di folder lokal
-4. **Team collaboration** — sync data ke cloud (Firebase, Supabase, dll)
-5. **Tags / Labels** — untuk kategorisasi test case lebih fleksibel
-
-## 🙋 Support
-
-Aplikasi ini sudah siap dipakai untuk manage test case secara lokal di macOS. Database SQLite disimpan di user folder, jadi tidak akan hilang saat close app.
-
-Build dengan ❤️ menggunakan Electron + React + SQLite.
+<div align="center">
+  Built with ❤️ by <a href="https://github.com/rodiyatun">rodiyatun</a>
+</div>
