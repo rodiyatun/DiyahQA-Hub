@@ -3,8 +3,8 @@ name: Build DiyahQA Hub
 on:
   push:
     tags:
-      - 'v*'        # trigger saat push tag seperti v1.0.1, v1.1.0
-  workflow_dispatch:  # trigger manual dari GitHub Actions UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-mac:
@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -25,11 +25,14 @@ jobs:
 
       - name: Build React
         run: npm run build
+        env:
+          CI: false
 
       - name: Package Electron (macOS)
-        run: npx electron-builder --mac
+        run: npx electron-builder --mac --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -50,7 +53,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -58,9 +61,11 @@ jobs:
 
       - name: Build React
         run: npm run build
+        env:
+          CI: false
 
       - name: Package Electron (Windows)
-        run: npx electron-builder --win
+        run: npx electron-builder --win --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,12 +102,12 @@ jobs:
           body: |
             ## DiyahQA Hub ${{ github.ref_name }}
 
-            ### Download
-            - **macOS** (Apple Silicon): `DiyahQA-Hub-*-arm64.dmg`
-            - **Windows** (x64): `DiyahQA-Hub-Setup-*.exe` atau `DiyahQA-Hub-*.exe` (portable)
+            ### 📥 Download
+            - **macOS** (Apple Silicon): `DiyahQA Hub-*-arm64.dmg`
+            - **Windows** (x64): `DiyahQA Hub Setup *.exe` atau `DiyahQA Hub *.exe` (portable)
 
             ### Instalasi
-            **macOS:** Buka `.dmg` → drag ke Applications
+            **macOS:** Buka `.dmg` → drag ke Applications → klik kanan Open
             **Windows:** Jalankan `.exe` installer, atau gunakan versi portable
           files: |
             artifacts/mac/*.dmg
