@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_LESSONS, HTTP_METHODS, STATUS_CODE_MAP } from './apiData';
 import { runAssertions, generatePlaywrightTest, generateTestSuite, generateDataDrivenTest, parseOpenAPI, formatJson, formatSize, statusClass, parsePostmanCollection } from './apiUtils';
+import TutorialPanel from '../TutorialPanel';
 import './APILab.css';
 
 // ─── Shared: JSON Viewer ──────────────────────────────────────────────────────
@@ -966,6 +967,7 @@ export default function APILabPage() {
           <h1 className="page-title">API Lab</h1>
           <p className="page-subtitle">Belajar, test manual, collection manager, OpenAPI, dan generate Playwright API automation</p>
         </div>
+        <TutorialPanel menuKey="apilab" />
       </div>
 
       <div className="apilab-tabs">

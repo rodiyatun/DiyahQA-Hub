@@ -3,6 +3,8 @@ import TestCaseModal from './TestCaseModal';
 import TestCaseDetailModal from './TestCaseDetailModal';
 import AITestCaseGenerator from './AITestCaseGenerator';
 import GeneratePlaywrightModal from './GeneratePlaywrightModal';
+import DesignPRDPanel from './DesignPRDPanel';
+import TutorialPanel from './TutorialPanel';
 import Papa from 'papaparse';
 import './TestCaseList.css';
 
@@ -21,7 +23,8 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
   const [showAIGenerator, setShowAIGenerator] = useState(false);
-  const [playwrightTC, setPlaywrightTC] = useState(null); // TC yang akan di-generate ke Playwright
+  const [playwrightTC, setPlaywrightTC] = useState(null);
+  const [activeTab, setActiveTab] = useState('testcases'); // testcases | design
 
   useEffect(() => { loadTestcases(); }, [project]);
 
@@ -200,6 +203,26 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           )}
         </div>
         <div className="tc-header-actions">
+          {/* Tab switcher */}
+          <div style={{ display: 'flex', gap: 4, marginRight: 8, border: '1px solid var(--border)', borderRadius: 8, padding: 2 }}>
+            {[
+              { id: 'testcases', label: '📋 Test Cases' },
+              { id: 'design',    label: '📐 Design & PRD' },
+            ].map(t => (
+              <button key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 11, cursor: 'pointer', fontWeight: activeTab === t.id ? 600 : 400,
+                  background: activeTab === t.id ? 'var(--accent)' : 'none',
+                  color: activeTab === t.id ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
+                }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <TutorialPanel menuKey={activeTab === 'design' ? 'designprd' : 'testcases'} />
+          {activeTab === 'testcases' && (<>
           <button className="btn btn-secondary btn-sm" onClick={handleImport}>
             📥 Import CSV
           </button>
@@ -222,8 +245,20 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
             + Tambah TC
           </button>
+          </>)}
         </div>
       </div>
+
+      {/* Design & PRD Tab */}
+      {activeTab === 'design' && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <DesignPRDPanel project={project} />
+        </div>
+      )}
+
+      {/* Test Cases Tab */}
+      {activeTab === 'testcases' && (
+      <React.Fragment>
 
       {/* Status Summary Bar */}
       <div className="status-bar">
@@ -387,6 +422,7 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           onClose={() => setPlaywrightTC(null)}
         />
       )}
+      </React.Fragment>)}
     </div>
   );
 }

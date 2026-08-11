@@ -1,3 +1,4 @@
+import TutorialPanel from '../TutorialPanel';
 import React, { useState, useEffect } from 'react';
 
 const PRIORITY_COLORS = { Critical:'#ef4444', High:'#f97316', Medium:'#f59e0b', Low:'#6366f1' };
@@ -72,8 +73,11 @@ export default function RequirementsPage({ projects, selectedProject }) {
           <h1 className="page-title">Requirements & Traceability</h1>
           <p className="page-subtitle">Mapping requirement ke test case untuk lihat coverage</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => { setEditingReq(null); setForm({ code:'',title:'',description:'',priority:'Medium' }); setShowForm(true); }}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <TutorialPanel menuKey="requirements" />
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditingReq(null); setForm({ code:'',title:'',description:'',priority:'Medium' }); setShowForm(true); }}
           disabled={!filterProj}>+ New Requirement</button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TutorialPanel from '../TutorialPanel';
 
 const STATUS_COLORS = { draft:'#64748b', active:'#6366f1', completed:'#22c55e' };
 const ITEM_COLORS  = { 'Not Run':'#64748b', Pass:'#22c55e', Fail:'#ef4444', Blocked:'#f97316', Skip:'#94a3b8' };
@@ -158,7 +159,10 @@ export default function TestPlanPage({ projects, selectedProject }) {
           <h1 className="page-title">Test Plans</h1>
           <p className="page-subtitle">Kelola siklus eksekusi test per sprint/release</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>+ New Test Plan</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <TutorialPanel menuKey="testplans" />
+          <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>+ New Test Plan</button>
+        </div>
       </div>
 
       <select value={filterProj} onChange={e => setFilterProj(e.target.value)} style={{ fontSize: 12, width: 220 }}>

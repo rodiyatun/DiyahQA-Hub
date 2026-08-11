@@ -1,3 +1,4 @@
+import TutorialPanel from '../TutorialPanel';
 import React, { useState } from 'react';
 import { OWASP_TOP10, SECURITY_CHECKLISTS } from './securityData';
 import './SecurityLab.css';
@@ -357,6 +358,7 @@ export default function SecurityLabPage() {
           <h1 className="page-title">Security Lab</h1>
           <p className="page-subtitle">OWASP Top 10, security checklist, dan HTTP header analyzer</p>
         </div>
+        <TutorialPanel menuKey="securitylab" />
       </div>
 
       {/* Tabs */}

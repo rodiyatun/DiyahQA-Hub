@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateFromRequirement, generatePageObject, analyzePlaywrightError, generateWithOpenAI } from './automationUtils';
 import { AcademyTab, TestDataTab, RunConfigTab, FailureCenterTab, LocatorInspectorTab, TutorialTab } from './subTabs';
+import TutorialPanel from '../TutorialPanel';
 import './AutomationLab.css';
 
 // ─── Shared LogPanel ──────────────────────────────────────────────────────────
@@ -601,6 +602,7 @@ export default function AutomationLabPage() {
         <h1 className="page-title">Automation Lab</h1>
         <p className="page-subtitle">Web & API automation powered by Playwright — Recorder, AI Generator, Failure Center, Academy</p>
       </div>
+      <TutorialPanel menuKey="automationlab" />
       <div className="walab-tabs">
         <button className={`walab-tab ${mainTab === 'projects' ? 'active' : ''}`} onClick={() => setMainTab('projects')}>🤖 Projects</button>
         <button className={`walab-tab ${mainTab === 'academy'  ? 'active' : ''}`} onClick={() => setMainTab('academy')}>🎭 Playwright Academy</button>

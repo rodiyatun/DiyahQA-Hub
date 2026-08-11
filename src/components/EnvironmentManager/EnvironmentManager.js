@@ -1,3 +1,4 @@
+import TutorialPanel from '../TutorialPanel';
 import React, { useState, useEffect } from 'react';
 
 const TYPE_COLORS = { staging: '#6366f1', uat: '#f59e0b', production: '#ef4444' };
@@ -73,7 +74,10 @@ export default function EnvironmentManager({ projects }) {
           <h1 className="page-title">Environment Manager</h1>
           <p className="page-subtitle">Kelola URL dan credentials per environment — staging, UAT, production</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => { setEditingEnv(null); setForm({ name:'',type:'staging',baseUrl:'',projectId:'' }); setShowForm(true); }}>+ New Environment</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <TutorialPanel menuKey="environments" />
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditingEnv(null); setForm({ name:'',type:'staging',baseUrl:'',projectId:'' }); setShowForm(true); }}>+ New Environment</button>
+        </div>
       </div>
 
       {/* Filter */}

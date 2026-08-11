@@ -1,3 +1,4 @@
+import TutorialPanel from '../TutorialPanel';
 import React, { useState, useEffect } from 'react';
 
 export default function TCLibraryPage({ projects, selectedProject }) {
@@ -73,6 +74,7 @@ export default function TCLibraryPage({ projects, selectedProject }) {
           <p className="page-subtitle">Template test case reusable — import ke project tanpa tulis ulang</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <TutorialPanel menuKey="tclibrary" />
           {selected.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={() => setImporting(true)}>📥 Import {selected.length} ke Project</button>
           )}

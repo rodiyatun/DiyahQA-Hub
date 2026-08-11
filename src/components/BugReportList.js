@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import BugReportModal from './BugReportModal';
 import BugReportDetailModal from './BugReportDetailModal';
 import { BugCategoryBadge } from './BugClassifier';
+import TutorialPanel from './TutorialPanel';
 import Papa from 'papaparse';
 import './BugReportList.css';
 
@@ -330,6 +331,9 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   const [showPlaneSettings, setShowPlaneSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'error'
   const lastSyncRef = useRef(null);
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState(null); // { ok, message }
+  const [collapsedReady, setCollapsedReady] = useState(false);
   // Assignee email modal state
   const [assigneeModalState, setAssigneeModalState] = useState(null); // { bugId, resolve }
 
@@ -619,6 +623,62 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     setSelected(prev => prev.length === filtered.length ? [] : filtered.map(b => b.id));
   }
 
+  // ── Ready to Release helpers ──────────────────────────────────────
+  function isReadyToRelease(bug) {
+    const s = (bug.plane_status || '').toLowerCase();
+    return s.includes('ready') || s.includes('release') || s.includes('ready to release')
+      || s.includes('ready up') || s.includes('ready for release') || s.includes('prod');
+  }
+
+  const readyBugs = bugs.filter(isReadyToRelease);
+
+  async function handleBroadcastRelease() {
+    if (!readyBugs.length) return;
+    const config = await window.api.getPlaneConfig();
+    const webhookUrl = config?.gchatWebhookUrl;
+
+    if (!webhookUrl) {
+      alert('Google Chat webhook belum dikonfigurasi.\nBuka ⚙️ Plane → isi field Google Chat Webhook URL.');
+      return;
+    }
+
+    setBroadcasting(true);
+    setBroadcastResult(null);
+
+    const now = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+    const listItems = readyBugs.map((b, i) => {
+      const link = b.plane_issue_url ? ` <${b.plane_issue_url}|${b.bug_number || `#${b.id}`}>` : ` (${b.bug_number || `#${b.id}`})`;
+      return `${i + 1}.${link} *${b.title}*  [${b.severity}]${b.module ? `  — ${b.module}` : ''}`;
+    }).join('\n');
+
+    const message = {
+      text: `🚀 *READY TO RELEASE — Siap Naik Production*\n` +
+        `📅 ${now}\n` +
+        `📋 ${readyBugs.length} issue sudah selesai QA dan siap deploy:\n\n` +
+        `${listItems}\n\n` +
+        `✅ Semua issue di atas sudah pass testing.\n` +
+        `🔔 *CC @squad4 @infra-team* — silakan koordinasi deployment.`,
+    };
+
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message),
+      });
+      if (res.ok) {
+        setBroadcastResult({ ok: true, message: `✅ Broadcast terkirim ke Google Chat! (${readyBugs.length} issue)` });
+      } else {
+        setBroadcastResult({ ok: false, message: `❌ Gagal kirim: HTTP ${res.status}` });
+      }
+    } catch (e) {
+      setBroadcastResult({ ok: false, message: `❌ Error: ${e.message}` });
+    } finally {
+      setBroadcasting(false);
+      setTimeout(() => setBroadcastResult(null), 6000);
+    }
+  }
+
   function statusBadgeClass(status) {
     const map = {
       'Open': 'open',
@@ -660,6 +720,17 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           <button className="btn btn-secondary btn-sm" onClick={handleImportPlane}>📋 Import Plane</button>
           <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>📤 Export CSV</button>
           <button className="btn btn-secondary btn-sm" onClick={handleOpenPlaneSettings}>⚙️ Plane</button>
+          <TutorialPanel menuKey="bugreports" />
+          {readyBugs.length > 0 && (
+            <button
+              className="btn btn-sm"
+              onClick={handleBroadcastRelease}
+              disabled={broadcasting}
+              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.5)', color: '#22c55e', fontWeight: 600 }}
+            >
+              {broadcasting ? '⏳ Mengirim...' : `🚀 Broadcast Release (${readyBugs.length})`}
+            </button>
+          )}
           <button
             className="btn btn-primary btn-sm"
             onClick={() => { setEditingBug(null); setShowModal(true); }}
@@ -683,6 +754,79 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           </div>
         ))}
       </div>
+
+      {/* Ready to Release Panel */}
+      {readyBugs.length > 0 && (
+        <div style={{
+          border: '1px solid rgba(34,197,94,0.4)',
+          borderRadius: 12,
+          background: 'rgba(34,197,94,0.05)',
+          padding: '10px 16px',
+          flexShrink: 0,
+        }}>
+          {/* Header — always visible, clickable to collapse */}
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+            onClick={() => setCollapsedReady(p => !p)}
+          >
+            <span style={{ fontSize: 16 }}>🚀</span>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
+                Ready to Release — {readyBugs.length} issue siap naik Production
+              </span>
+            </div>
+            <button
+              className="btn btn-sm"
+              onClick={e => { e.stopPropagation(); handleBroadcastRelease(); }}
+              disabled={broadcasting}
+              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.5)', color: '#22c55e', fontWeight: 600, flexShrink: 0 }}
+            >
+              {broadcasting ? '⏳ Mengirim...' : '📢 Broadcast'}
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
+              {collapsedReady ? '▼ Lihat' : '▲ Sembunyikan'}
+            </span>
+          </div>
+
+          {/* Collapsible content */}
+          {!collapsedReady && (
+            <div style={{ marginTop: 10 }}>
+              {broadcastResult && (
+                <div style={{
+                  padding: '6px 12px', borderRadius: 8, fontSize: 12, marginBottom: 8,
+                  background: broadcastResult.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: broadcastResult.ok ? '#22c55e' : '#ef4444',
+                  border: `1px solid ${broadcastResult.ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                }}>
+                  {broadcastResult.message}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+                {readyBugs.map(b => (
+                  <div key={b.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                    background: 'var(--bg-card)', borderRadius: 7, border: '1px solid var(--border)',
+                  }}>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 7, background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, fontFamily: 'monospace' }}>{b.bug_number || `#${b.id}`}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</span>
+                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 5, flexShrink: 0,
+                      background: b.severity === 'Critical' ? 'rgba(239,68,68,0.15)' : b.severity === 'High' ? 'rgba(249,115,22,0.15)' : 'rgba(245,158,11,0.15)',
+                      color: b.severity === 'Critical' ? '#ef4444' : b.severity === 'High' ? '#f97316' : '#f59e0b',
+                    }}>{b.severity}</span>
+                    {b.module && <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{b.module}</span>}
+                    {b.plane_issue_url && (
+                      <a href={b.plane_issue_url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 10, color: '#6366f1', flexShrink: 0, textDecoration: 'none' }}
+                        onClick={e => e.stopPropagation()}>🔗</a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bug-filters">

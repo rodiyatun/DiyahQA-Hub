@@ -1,3 +1,4 @@
+import TutorialPanel from '../TutorialPanel';
 import React, { useState } from 'react';
 import { ACADEMY_MODULES, PERFORMANCE_CHECKLIST, PERFORMANCE_CHALLENGES } from './performanceData';
 import { analyzeK6Report, generateK6Script, compareTrends } from './performanceUtils';
@@ -637,6 +638,7 @@ export default function PerformanceLabPage() {
           <h1 className="page-title">Performance Lab</h1>
           <p className="page-subtitle">Belajar, bangun skenario, generate script k6, analisis hasil, dan track tren performa</p>
         </div>
+        <TutorialPanel menuKey="performancelab" />
       </div>
 
       <div className="perflab-tabs">

@@ -3,6 +3,7 @@ import { CICD_ROADMAP, FAILURE_SCENARIOS } from './cicdData';
 import { generatePipeline, validateGithubActionsYAML, buildPipelineSteps } from './cicdUtils';
 import WebhookRunner from './WebhookRunner';
 import DeploymentReadinessGate from './DeploymentReadinessGate';
+import TutorialPanel from '../TutorialPanel';
 import './CICDLab.css';
 
 // ── Tab: Academy ──────────────────────────────────────────────────────────────
@@ -921,6 +922,7 @@ export default function CICDLabPage() {
           <h1 className="page-title">CI/CD Lab</h1>
           <p className="page-subtitle">Pipeline visualizer, builder, simulator, failure analyzer, dan AI assistant</p>
         </div>
+        <TutorialPanel menuKey="cicdlab" />
       </div>
       <div className="cicd-tabs">
         {TABS.map(t => (
