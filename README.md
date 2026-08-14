@@ -111,13 +111,21 @@ npm run package      # build untuk OS saat ini (Mac/Windows/Linux)
 ### Build via GitHub Actions
 Push tag untuk trigger auto-build Mac + Windows:
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.1.2
+git push origin v1.1.2
 ```
 
----
+## 🔑 Aktivasi License
 
-## 🧰 Tech Stack
+DiyahQA Hub menggunakan sistem license key. Saat pertama kali membuka app, akan muncul layar aktivasi.
+
+1. Masukkan license key format: `DQHB-XXXX-XXXX-XXXX`
+2. Klik **Aktifkan**
+3. Setelah berhasil, app siap digunakan
+
+> Untuk mendapatkan license key, hubungi tim DiyahQA Hub.
+
+---
 
 | Layer | Tech |
 |---|---|
