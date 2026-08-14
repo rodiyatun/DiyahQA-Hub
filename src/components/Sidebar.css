@@ -7,6 +7,39 @@
   flex-direction: column;
   padding: 0;
   overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+  width: 60px;
+  min-width: 60px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-action-btn .nav-label {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  justify-content: center;
+  padding-left: 20px;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .nav-icon {
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-action-btn {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .sidebar-logo {

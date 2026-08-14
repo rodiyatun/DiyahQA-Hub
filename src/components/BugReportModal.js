@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-
+import { supabase } from '../lib/supabaseClient';
+import { requireDesktop } from '../utils/platform';
+import { useAgent } from '../contexts/AgentContext';
+import { Bot, Sparkles, X } from 'lucide-react';
 const SEVERITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'];
 const STATUS_OPTIONS = ['Open', 'In Progress', 'Resolved', 'Closed', "Won't Fix"];
@@ -29,6 +32,22 @@ export default function BugReportModal({ bug, projects, onSave, onClose, prefill
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [otherProjectName, setOtherProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+  const { enabled: aiEnabled } = useAgent();
+  const [csMode, setCsMode] = useState(false);
+  const [csPrompt, setCsPrompt] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [tcSearchText, setTcSearchText] = useState('');
+  const [isSearchingTC, setIsSearchingTC] = useState(false);
+
+  // Sync testcase search text
+  useEffect(() => {
+    if (form.linked_testcase_id && testcases.length > 0) {
+      const tc = testcases.find(t => t.id === form.linked_testcase_id);
+      if (tc) setTcSearchText(`${tc.no ? tc.no + ' — ' : ''}${tc.title}`);
+    } else if (!form.linked_testcase_id) {
+      setTcSearchText('');
+    }
+  }, [form.linked_testcase_id, testcases]);
 
   // Initialize form on mount
   useEffect(() => {
@@ -44,9 +63,12 @@ export default function BugReportModal({ bug, projects, onSave, onClose, prefill
   // Fetch test cases when project_id changes
   useEffect(() => {
     if (form.project_id) {
-      window.api.getTestcases(form.project_id).then(data => {
+      supabase.from('testcases').select('*').eq('project_id', form.project_id).then(({ data, error }) => {
+        if (error) {
+          console.error(error);
+          return;
+        }
         setTestcases(data || []);
-        // Reset linked_testcase_id if it's no longer in the new list
         if (form.linked_testcase_id) {
           const stillValid = (data || []).some(tc => tc.id === form.linked_testcase_id);
           if (!stillValid) {
@@ -69,12 +91,12 @@ export default function BugReportModal({ bug, projects, onSave, onClose, prefill
     if (!otherProjectName.trim()) return alert('Nama project wajib diisi');
     setCreatingProject(true);
     try {
-      const newProject = await window.api.createProject({ name: otherProjectName.trim(), description: '' });
+      const { data: newProject, error } = await supabase.from('projects').insert([{ name: otherProjectName.trim(), description: '' }]).select().single();
+      if (error) throw error;
       if (newProject?.id) {
         setForm(prev => ({ ...prev, project_id: newProject.id }));
         setShowOtherProject(false);
         setOtherProjectName('');
-        // Refresh projects list jika ada callback — tidak ada di props, tapi project baru tetap tersimpan
       }
     } catch (err) {
       alert('Gagal membuat project: ' + err.message);
@@ -113,11 +135,69 @@ export default function BugReportModal({ bug, projects, onSave, onClose, prefill
               </div>
             )}
           </div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button 
+              type="button"
+              className={`btn btn-sm ${aiEnabled ? (csMode ? 'btn-primary' : 'btn-secondary') : 'btn-secondary'}`}
+              style={{ opacity: aiEnabled ? 1 : 0.5, cursor: aiEnabled ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6 }}
+              title={aiEnabled ? "Gunakan Agentic AI (CS Mode)" : "Aktifkan Agentic AI di Settings"}
+              onClick={() => aiEnabled && setCsMode(!csMode)}
+            >
+              <Bot size={14} /> AI Assist
+            </button>
+            <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
+          </div>
         </div>
 
+        {csMode && (
+          <div style={{ padding: '16px', background: 'rgba(99, 102, 241, 0.05)', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <textarea
+              style={{ flex: 1, minHeight: 60, padding: 8, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              placeholder="Jelaskan keluhan user (misal: 'user ngeluh gabisa login, error 500 pas masukin password')..."
+              value={csPrompt}
+              onChange={e => setCsPrompt(e.target.value)}
+            />
+            <button 
+              type="button"
+              className="btn btn-primary"
+              disabled={!csPrompt.trim() || generating}
+              onClick={async () => {
+                if (!requireDesktop('AI Auto-generate bug report')) return;
+                setGenerating(true);
+                try {
+                  const prompt = `Buatkan deskripsi bug report profesional berdasarkan keluhan berikut: "${csPrompt}". 
+                  Kembalikan dalam format JSON: { title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, priority }. 
+                  Hanya kembalikan valid JSON, tanpa backtick atau markdown.`;
+                  
+                  const response = await window.api.askAntigravity(prompt);
+                  const cleanJson = response.replace(/^```json/g, '').replace(/```$/g, '').trim();
+                  const parsed = JSON.parse(cleanJson);
+                  
+                  setForm(prev => ({
+                    ...prev,
+                    title: parsed.title || prev.title,
+                    description: parsed.description || prev.description,
+                    steps_to_reproduce: parsed.steps_to_reproduce || prev.steps_to_reproduce,
+                    expected_behavior: parsed.expected_behavior || prev.expected_behavior,
+                    actual_behavior: parsed.actual_behavior || prev.actual_behavior,
+                    severity: parsed.severity || prev.severity,
+                    priority: parsed.priority || prev.priority
+                  }));
+                  setCsMode(false);
+                } catch (e) {
+                  alert('Gagal menggunakan AI: ' + e.message);
+                } finally {
+                  setGenerating(false);
+                }
+              }}
+            >
+              {generating ? 'Memproses...' : <><Sparkles size={14} /> Generate</>}
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          <div style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: 4 }}>
+          <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 4 }}>
 
             {/* Row 1: Project | Bug Number */}
             <div className="form-row">
@@ -299,19 +379,39 @@ export default function BugReportModal({ bug, projects, onSave, onClose, prefill
             </div>
 
             {/* Linked Test Case */}
-            <div className="form-group">
+            <div className="form-group" style={{ position: 'relative' }}>
               <label>Linked Test Case</label>
-              <select
-                value={form.linked_testcase_id || ''}
-                onChange={e => set('linked_testcase_id', e.target.value || null)}
-              >
-                <option value="">— Tidak ada —</option>
-                {testcases.map(tc => (
-                  <option key={tc.id} value={tc.id}>
-                    {tc.no ? `${tc.no} — ` : ''}{tc.title}
-                  </option>
-                ))}
-              </select>
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="Cari ID atau judul Test Case..." 
+                value={tcSearchText} 
+                onChange={e => setTcSearchText(e.target.value)} 
+                onFocus={() => setIsSearchingTC(true)}
+                onBlur={() => setTimeout(() => setIsSearchingTC(false), 200)}
+              />
+              {isSearchingTC && (
+                <div style={{ position: 'absolute', zIndex: 50, background: '#1e293b', border: '1px solid #475569', borderRadius: 6, width: '100%', maxHeight: 220, overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+                  <div style={{ padding: '10px 12px', cursor: 'pointer', color: '#94a3b8' }} onClick={() => { set('linked_testcase_id', null); setTcSearchText(''); setIsSearchingTC(false); }}>
+                    — Tidak ada —
+                  </div>
+                  {testcases.filter(tc => `${tc.no || ''} ${tc.title}`.toLowerCase().includes(tcSearchText.toLowerCase())).map(tc => (
+                    <div 
+                      key={tc.id} 
+                      style={{ padding: '10px 12px', cursor: 'pointer', borderTop: '1px solid #334155', color: '#e2e8f0', fontSize: 14 }}
+                      onClick={() => {
+                        set('linked_testcase_id', tc.id);
+                        setTcSearchText(`${tc.no ? tc.no + ' — ' : ''}${tc.title}`);
+                        setIsSearchingTC(false);
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#334155'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {tc.no ? <strong style={{ color: '#8b5cf6' }}>{tc.no}</strong> : ''} {tc.no ? '— ' : ''}{tc.title}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>{/* end scrollable body */}

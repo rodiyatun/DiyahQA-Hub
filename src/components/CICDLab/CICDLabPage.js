@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Terminal, Zap, Download, Package, Beaker, BarChart2, Rocket, Play, RotateCcw, 
+  Check, X, RefreshCw, BookOpen, Lock, Github, Gitlab, Settings, Target, Globe, 
+  Wrench, Upload, Bell, CheckCircle, XCircle, AlertTriangle, Search, ChevronUp, 
+  FileText, FileCode2, Trash2, Bot, Book, Map, GitPullRequest, Flame, CheckSquare, 
+  ShieldCheck, Box, Server, Webhook, ClipboardList
+} from 'lucide-react';
+import CICDSettingsModal from '../CICDSettingsModal';
 import { CICD_ROADMAP, FAILURE_SCENARIOS } from './cicdData';
 import { generatePipeline, validateGithubActionsYAML, buildPipelineSteps } from './cicdUtils';
 import WebhookRunner from './WebhookRunner';
@@ -59,13 +67,13 @@ function AcademyTab() {
 
 // ── Tab: Pipeline Visualizer ──────────────────────────────────────────────────
 const VIZ_NODES = [
-  { id: 'commit', icon: '💻', label: 'Commit' },
-  { id: 'trigger', icon: '⚡', label: 'Trigger' },
-  { id: 'checkout', icon: '📥', label: 'Checkout' },
-  { id: 'install', icon: '📦', label: 'Install' },
-  { id: 'test', icon: '🧪', label: 'E2E Test' },
-  { id: 'report', icon: '📊', label: 'Report' },
-  { id: 'deploy', icon: '🚀', label: 'Deploy' },
+  { id: 'commit', icon: <Terminal size={16} />, label: 'Commit' },
+  { id: 'trigger', icon: <Zap size={16} />, label: 'Trigger' },
+  { id: 'checkout', icon: <Download size={16} />, label: 'Checkout' },
+  { id: 'install', icon: <Package size={16} />, label: 'Install' },
+  { id: 'test', icon: <Beaker size={16} />, label: 'E2E Test' },
+  { id: 'report', icon: <BarChart2 size={16} />, label: 'Report' },
+  { id: 'deploy', icon: <Rocket size={16} />, label: 'Deploy' },
 ];
 
 function PipelineVisualizerTab() {
@@ -107,8 +115,12 @@ function PipelineVisualizerTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="builder-card">
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={runViz} disabled={running}>▶ Jalankan Simulasi</button>
-          <button className="btn btn-secondary btn-sm" onClick={reset}>↺ Reset</button>
+          <button className="btn btn-primary" onClick={runViz} disabled={running}>
+            <Play size={14} style={{ marginRight: 6 }} /> Jalankan Simulasi
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={reset}>
+            <RotateCcw size={14} style={{ marginRight: 6 }} /> Reset
+          </button>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Simulasikan gagal di:</label>
             <select value={failAt || ''} onChange={e => setFailAt(e.target.value || null)} style={{ fontSize: 12 }}>
@@ -124,9 +136,9 @@ function PipelineVisualizerTab() {
               <div className="pipeline-node">
                 <div className={`node-circle ${nodeClass(node.id)}`}>{node.icon}</div>
                 <div className="node-label">{node.label}</div>
-                {statuses[node.id] === 'success' && <div style={{ fontSize: 10, color: '#22c55e' }}>✓ done</div>}
-                {statuses[node.id] === 'failed'  && <div style={{ fontSize: 10, color: '#ef4444' }}>✗ failed</div>}
-                {statuses[node.id] === 'running' && <div style={{ fontSize: 10, color: '#f97316' }}>⟳ running</div>}
+                {statuses[node.id] === 'success' && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#22c55e' }}><Check size={12} /> done</div>}
+                {statuses[node.id] === 'failed'  && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#ef4444' }}><X size={12} /> failed</div>}
+                {statuses[node.id] === 'running' && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#f97316' }}><RefreshCw size={12} className="spin" /> running</div>}
               </div>
               {i < VIZ_NODES.length - 1 && (
                 <div className={`pipeline-arrow ${statuses[node.id] === 'success' ? 'active' : ''}`} />
@@ -141,7 +153,9 @@ function PipelineVisualizerTab() {
       </div>
 
       <div className="builder-card">
-        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 12 }}>📘 Deployment Flow: Dev → Staging → Production</h3>
+        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <BookOpen size={16} /> Deployment Flow: Dev → Staging → Production
+        </h3>
         <DeploymentFlowMini />
       </div>
     </div>
@@ -150,9 +164,9 @@ function PipelineVisualizerTab() {
 
 function DeploymentFlowMini() {
   const envs = [
-    { id: 'dev', icon: '💻', name: 'Development', desc: 'Auto-deploy setiap push' },
-    { id: 'staging', icon: '🧪', name: 'Staging', desc: 'Auto-deploy dari main' },
-    { id: 'prod', icon: '🏭', name: 'Production', desc: 'Manual approval' },
+    { id: 'dev', icon: <Terminal size={18} />, name: 'Development', desc: 'Auto-deploy setiap push' },
+    { id: 'staging', icon: <Beaker size={18} />, name: 'Staging', desc: 'Auto-deploy dari main' },
+    { id: 'prod', icon: <Server size={18} />, name: 'Production', desc: 'Manual approval' },
   ];
   const [deployed, setDeployed] = useState({});
   const [approvals, setApprovals] = useState({});
@@ -185,7 +199,15 @@ function DeploymentFlowMini() {
             <div className={`env-box ${current === env.id ? 'active' : ''} ${deployed[env.id] ? 'deployed' : ''}`}>
               <div className="env-icon">{env.icon}</div>
               <div className="env-name">{env.name}</div>
-              <div className="env-status">{deployed[env.id] ? '✅ Deployed' : current === env.id ? '⟳ Deploying...' : env.desc}</div>
+              <div className="env-status">
+                {deployed[env.id] ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><Check size={12} /> Deployed</span>
+                ) : current === env.id ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><RefreshCw size={12} className="spin" /> Deploying...</span>
+                ) : (
+                  env.desc
+                )}
+              </div>
             </div>
             {i < envs.length - 1 && (
               <>
@@ -196,7 +218,10 @@ function DeploymentFlowMini() {
                     onClick={approve}
                     title="Klik untuk approve"
                   >
-                    🔐<br />Approval<br />{approvals['prod-gate'] ? '✓ Approved' : 'Pending'}
+                    <Lock size={16} style={{ marginBottom: 4 }} /><br />Approval<br />
+                    {approvals['prod-gate'] ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><Check size={12} /> Approved</span>
+                    ) : 'Pending'}
                   </div>
                 )}
               </>
@@ -205,9 +230,11 @@ function DeploymentFlowMini() {
         ))}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button className="btn btn-primary btn-sm" onClick={runDeploy}>▶ Simulasikan Deploy</button>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>
-          Klik 🔐 Approval untuk approve deploy ke Production
+        <button className="btn btn-primary btn-sm" onClick={runDeploy}>
+          <Play size={14} style={{ marginRight: 6 }} /> Simulasikan Deploy
+        </button>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 4 }}>
+          Klik <Lock size={12} /> Approval untuk approve deploy ke Production
         </span>
       </div>
     </div>
@@ -216,9 +243,9 @@ function DeploymentFlowMini() {
 
 // ── Tab: Pipeline Builder ─────────────────────────────────────────────────────
 const PLATFORMS = [
-  { id: 'github-actions', label: 'GitHub Actions', icon: '🐙' },
-  { id: 'gitlab-ci',      label: 'GitLab CI',      icon: '🦊' },
-  { id: 'jenkins',        label: 'Jenkins',         icon: '⚙️' },
+  { id: 'github-actions', label: 'GitHub Actions', icon: <Github size={16} /> },
+  { id: 'gitlab-ci',      label: 'GitLab CI',      icon: <Gitlab size={16} /> },
+  { id: 'jenkins',        label: 'Jenkins',         icon: <Settings size={16} /> },
 ];
 const BROWSER_OPTIONS = ['chromium', 'firefox', 'webkit'];
 
@@ -227,6 +254,7 @@ function PipelineBuilderTab() {
     platform: 'github-actions', name: 'Playwright E2E Tests',
     branch: 'main', nodeVersion: '20', browsers: ['chromium'],
     retries: 2, uploadArtifact: true, notifySlack: false, timeout: 30,
+    sastScans: false, dastScan: false,
   });
   const [output, setOutput] = useState('');
   const [copied, setCopied] = useState(false);
@@ -253,7 +281,7 @@ function PipelineBuilderTab() {
       <div className="builder-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="builder-card">
-            <h3>🎯 Platform</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Target size={16} /> Platform</h3>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {PLATFORMS.map(p => (
                 <button key={p.id} className={`platform-btn ${config.platform === p.id ? 'active' : ''}`}
@@ -265,7 +293,7 @@ function PipelineBuilderTab() {
           </div>
 
           <div className="builder-card">
-            <h3>⚙️ Konfigurasi</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Settings size={16} /> Konfigurasi</h3>
             <div className="form-group"><label>Nama Workflow</label>
               <input value={config.name} onChange={e => set('name', e.target.value)} />
             </div>
@@ -292,7 +320,7 @@ function PipelineBuilderTab() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="builder-card">
-            <h3>🌐 Browser</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={16} /> Browser</h3>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {BROWSER_OPTIONS.map(b => (
                 <label key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
@@ -304,18 +332,20 @@ function PipelineBuilderTab() {
           </div>
 
           <div className="builder-card">
-            <h3>🔧 Opsi Tambahan</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Wrench size={16} /> Opsi Tambahan</h3>
             {[
-              { field: 'uploadArtifact', label: '📤 Upload Playwright Report sebagai Artifact' },
-              { field: 'notifySlack', label: '🔔 Notifikasi Slack jika pipeline gagal' },
+              { field: 'uploadArtifact', label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Upload size={14} /> Upload Playwright Report sebagai Artifact</span> },
+              { field: 'notifySlack', label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Bell size={14} /> Notifikasi Slack jika pipeline gagal</span> },
+              { field: 'sastScans', label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><ShieldCheck size={14} /> Integrasi SonarQube & Trivy (SCA/SAST)</span> },
+              { field: 'dastScan', label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Wrench size={14} /> Integrasi OWASP ZAP (DAST)</span> },
             ].map(opt => (
               <label key={opt.field} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
                 <input type="checkbox" checked={config[opt.field]} onChange={e => set(opt.field, e.target.checked)} style={{ width: 'auto' }} />
                 {opt.label}
               </label>
             ))}
-            <button className="btn btn-primary" style={{ marginTop: 8, width: '100%' }} onClick={handleGenerate}>
-              ⚡ Generate Pipeline YAML
+            <button className="btn btn-primary" style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }} onClick={handleGenerate}>
+              <Zap size={14} /> Generate Pipeline YAML
             </button>
           </div>
         </div>
@@ -327,7 +357,9 @@ function PipelineBuilderTab() {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
               Generated {PLATFORMS.find(p => p.id === config.platform)?.label} YAML
             </span>
-            <button className="btn btn-secondary btn-sm" onClick={handleCopy}>{copied ? '✅ Copied!' : '📋 Copy'}</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {copied ? <><Check size={14} /> Copied!</> : <><ClipboardList size={14} /> Copy</>}
+            </button>
           </div>
           <div className="code-block" style={{ margin: 0, borderRadius: 0, maxHeight: 400, overflowY: 'auto' }}>{output}</div>
         </div>
@@ -384,18 +416,27 @@ function PipelineRunnerTab() {
 
   function reset() { setSteps([]); setLogs([]); }
 
-  const statusIcon = { pending: '⬜', running: '⟳', success: '✅', failed: '❌' };
+  const statusIcon = { 
+    pending: <div style={{width: 14, height: 14, border: '2px solid var(--border)', borderRadius: '50%'}}></div>, 
+    running: <RefreshCw size={14} className="spin" color="#f97316" />, 
+    success: <CheckCircle size={14} color="#10b981" />, 
+    failed: <XCircle size={14} color="#ef4444" /> 
+  };
   const stepCls    = { pending: '', running: 'active', success: 'done', failed: 'failed' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="builder-card">
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={runPipeline} disabled={running}>▶ Jalankan Pipeline</button>
-          <button className="btn btn-secondary btn-sm" onClick={reset} disabled={running}>↺ Reset</button>
+          <button className="btn btn-primary" onClick={runPipeline} disabled={running}>
+            <Play size={14} style={{ marginRight: 6 }} /> Jalankan Pipeline
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={reset} disabled={running}>
+            <RotateCcw size={14} style={{ marginRight: 6 }} /> Reset
+          </button>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', marginLeft: 'auto' }}>
             <input type="checkbox" checked={forceFailure} onChange={e => setForceFailure(e.target.checked)} style={{ width: 'auto' }} />
-            💥 Simulasikan test gagal
+            <AlertTriangle size={14} color="#f59e0b" /> Simulasikan test gagal
           </label>
         </div>
 
@@ -463,8 +504,8 @@ function FailureAnalyzerTab() {
       </div>
 
       <div className="builder-card">
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
-          🔍 Apa penyebab kegagalan ini?
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Search size={16} /> Apa penyebab kegagalan ini?
         </div>
         {selected.options.map((opt, i) => {
           let cls = '';
@@ -483,13 +524,13 @@ function FailureAnalyzerTab() {
 
         {answered && (
           <div className="fail-explanation">
-            {correct ? '✅ Benar! ' : '❌ Kurang tepat. '}{selected.explanation}
+            {correct ? <span style={{color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 4}}><CheckCircle size={14} /> Benar! </span> : <span style={{color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4}}><XCircle size={14} /> Kurang tepat. </span>} {selected.explanation}
           </div>
         )}
 
         {answered && (
-          <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }} onClick={() => setShowFix(p => !p)}>
-            {showFix ? '▲ Sembunyikan' : '🔧 Lihat cara fix'}
+          <button className="btn btn-secondary btn-sm" style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowFix(p => !p)}>
+            {showFix ? <><ChevronUp size={14} /> Sembunyikan</> : <><Wrench size={14} /> Lihat cara fix</>}
           </button>
         )}
 
@@ -532,14 +573,14 @@ function YAMLValidatorTab() {
   function validate() { setIssues(validateGithubActionsYAML(yaml)); }
   function loadSample() { setYaml(SAMPLE_YAML); setIssues(null); }
 
-  const iconMap = { error: '❌', warn: '⚠️', pass: '✅' };
+  const iconMap = { error: <XCircle size={14} color="#ef4444" />, warn: <AlertTriangle size={14} color="#f59e0b" />, pass: <CheckCircle size={14} color="#10b981" /> };
   const clsMap  = { error: 'validation-error', warn: 'validation-warn', pass: 'validation-pass' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="builder-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h3 style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>📝 Paste YAML Pipeline (GitHub Actions)</h3>
+          <h3 style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={16} /> Paste YAML Pipeline (GitHub Actions)</h3>
           <button className="btn btn-secondary btn-sm" onClick={loadSample}>Muat Contoh</button>
         </div>
         <textarea
@@ -549,8 +590,8 @@ function YAMLValidatorTab() {
           placeholder={`name: My Pipeline\n\non:\n  push:\n    branches: [main]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci`}
           spellCheck={false}
         />
-        <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={validate} disabled={!yaml.trim()}>
-          🔍 Validasi YAML
+        <button className="btn btn-primary btn-sm" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }} onClick={validate} disabled={!yaml.trim()}>
+          <Search size={14} /> Validasi YAML
         </button>
       </div>
 
@@ -624,7 +665,7 @@ function ArtifactExplorerTab() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  const typeIcon = { screenshot: '🖼️', video: '🎬', json: '📋', html: '🌐', trace: '🔍', xml: '📄', unknown: '📎' };
+  const typeIcon = { screenshot: <FileText size={16} />, video: <Play size={16} />, json: <FileText size={16} />, html: <Globe size={16} />, trace: <Search size={16} />, xml: <FileCode2 size={16} />, unknown: <FileText size={16} /> };
 
   function renderPreview(artifact) {
     if (artifact.type === 'screenshot') {
@@ -639,7 +680,7 @@ function ArtifactExplorerTab() {
           const s = parsed.statistic;
           return (
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>📊 Allure Summary Report</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><BarChart2 size={16} /> Allure Summary Report</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
                 {[
                   { label: 'Total', val: s.total || 0, color: '#6366f1' },
@@ -682,7 +723,7 @@ function ArtifactExplorerTab() {
         const passed  = total - failed - errors;
         return (
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>📄 JUnit XML Report</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><FileCode2 size={16} /> JUnit XML Report</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
               {[{ l:'Total', v:total, c:'#6366f1' }, { l:'Passed', v:passed, c:'#22c55e' }, { l:'Failed', v:failed, c:'#ef4444' }, { l:'Time', v:`${timeMatch?.[1] || '?'}s`, c:'#f59e0b' }].map(i => (
                 <div key={i.l} style={{ padding: 12, borderRadius: 8, background: 'var(--bg-secondary)', textAlign: 'center', border: `1px solid ${i.c}33` }}>
@@ -706,7 +747,7 @@ function ArtifactExplorerTab() {
       );
     }
     if (artifact.type === 'trace') {
-      return <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>🔍 Playwright trace file terdeteksi.<br />Gunakan <code>npx playwright show-trace {artifact.name}</code> untuk membukanya.</div>;
+      return <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}><Search size={14} style={{marginBottom: 8, display: 'block', margin: '0 auto'}} /> Playwright trace file terdeteksi.<br />Gunakan <code>npx playwright show-trace {artifact.name}</code> untuk membukanya.</div>;
     }
     return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Preview tidak tersedia untuk tipe file ini.</div>;
   }
@@ -721,7 +762,7 @@ function ArtifactExplorerTab() {
         onDrop={handleDrop}
         onClick={() => document.getElementById('artifact-input').click()}
       >
-        <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
+        <div style={{ marginBottom: 8, color: 'var(--primary-color)' }}><Package size={32} /></div>
         <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>Drag & drop artifact ke sini</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Screenshot (.png), Video (.mp4), Allure JSON, JUnit XML, Playwright Trace (.zip)</div>
         <input id="artifact-input" type="file" multiple style={{ display: 'none' }} onChange={handleFileInput}
@@ -745,8 +786,8 @@ function ArtifactExplorerTab() {
                 </div>
               ))}
             </div>
-            <button className="btn btn-secondary btn-sm" style={{ marginTop: 10, width: '100%' }}
-              onClick={() => { setArtifacts([]); setSelected(null); }}>🗑️ Clear All</button>
+            <button className="btn btn-secondary btn-sm" style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+              onClick={() => { setArtifacts([]); setSelected(null); }}><Trash2 size={14} /> Clear All</button>
           </div>
 
           {/* Preview */}
@@ -867,7 +908,7 @@ function AIAssistantTab() {
               whiteSpace: 'pre-wrap',
               lineHeight: 1.6,
             }}>
-              {m.role === 'assistant' && <span style={{ fontSize: 11, color: '#f97316', fontWeight: 700, display: 'block', marginBottom: 4 }}>🤖 Pipeline Assistant</span>}
+              {m.role === 'assistant' && <span style={{ fontSize: 11, color: '#f97316', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Bot size={14} /> Pipeline Assistant</span>}
               {m.text}
             </div>
           </div>
@@ -899,31 +940,239 @@ function AIAssistantTab() {
   );
 }
 
+// ── Tab: Jenkins Control Center ────────────────────────────────────────────────
+function JenkinsControlCenterTab() {
+  const [running, setRunning] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [buildId, setBuildId] = useState(null);
+
+  async function triggerPipeline() {
+    setRunning(true);
+    setLogs(['[SYSTEM] Triggering Jenkins Pipeline...', '[SYSTEM] Waiting for Jenkins response...']);
+    setBuildId(null);
+    try {
+      const res = await window.api.triggerJenkinsPipeline({ branch: 'main' });
+      setBuildId(res.buildId);
+      setLogs(p => [...p, `[JENKINS] Pipeline started successfully. Build ID: #${res.buildId}`, '[JENKINS] Stage: Checkout SCM...', '[JENKINS] Stage: Install Dependencies...']);
+      
+      setTimeout(() => setLogs(p => [...p, '[JENKINS] Stage: Run Unit Tests...', 'PASS: src/components/Login.test.js']), 1000);
+      setTimeout(() => setLogs(p => [...p, '[JENKINS] Stage: SonarQube Quality Gate...', 'QUALITY GATE: PASSED']), 2000);
+      setTimeout(() => setLogs(p => [...p, '[JENKINS] Stage: Build Docker Image...', 'Successfully tagged app:latest']), 3000);
+      setTimeout(() => {
+        setLogs(p => [...p, '[JENKINS] Pipeline FINISHED with status SUCCESS.']);
+        setRunning(false);
+      }, 4000);
+    } catch (e) {
+      setLogs(p => [...p, `[ERROR] Failed to trigger pipeline: ${e.message}`]);
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="cicd-panel">
+      <h2 style={{ marginBottom: 15, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins" height="24" /> 
+        Jenkins Control Center
+      </h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+        Trigger dan pantau eksekusi pipeline CI (Continuous Integration) secara langsung.
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <button className="btn btn-primary" onClick={triggerPipeline} disabled={running}>
+          {running ? 'Pipeline Running...' : 'Trigger Pipeline (main)'}
+        </button>
+      </div>
+
+      <div className="terminal-log" style={{ minHeight: 300 }}>
+        {logs.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)' }}>Waiting for pipeline execution...</div>
+        ) : (
+          logs.map((log, idx) => (
+            <div key={idx} style={{ 
+              color: log.includes('ERROR') ? '#ef4444' : log.includes('SUCCESS') || log.includes('PASS') ? '#10b981' : 'var(--text-primary)',
+              fontFamily: 'monospace', fontSize: 12, marginBottom: 4 
+            }}>{log}</div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Tab: ArgoCD GitOps Sync ──────────────────────────────────────────────────
+function ArgoCDTab() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function fetchStatus() {
+    setLoading(true);
+    try {
+      const res = await window.api.getArgoCDStatus();
+      if (res.success) setStatus(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchStatus(); }, []);
+
+  return (
+    <div className="cicd-panel">
+      <h2 style={{ marginBottom: 15, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Server size={24} style={{ color: 'var(--primary-color)' }} />
+        ArgoCD GitOps Sync
+      </h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+        Pantau sinkronisasi GitOps dan kesehatan deployment aplikasi di klaster Kubernetes.
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <button className="btn btn-outline" onClick={fetchStatus} disabled={loading}>
+          {loading ? 'Refreshing...' : 'Refresh Status'}
+        </button>
+        <button className="btn btn-primary" onClick={() => {
+          setStatus(p => ({ ...p, syncStatus: 'Syncing...' }));
+          setTimeout(fetchStatus, 2000);
+        }} disabled={loading}>
+          Force Sync
+        </button>
+      </div>
+
+      {status && (
+        <div style={{ background: 'var(--bg-secondary)', padding: 20, borderRadius: 8, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Sync Status</div>
+            <div style={{ fontSize: 18, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6, color: status.syncStatus === 'Synced' ? '#10b981' : '#f59e0b' }}>
+              {status.syncStatus === 'Synced' ? <><Check size={18} /> Synced</> : <><RefreshCw size={18} className="spin" /> {status.syncStatus}</>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Health Status</div>
+            <div style={{ fontSize: 18, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6, color: status.healthStatus === 'Healthy' ? '#10b981' : '#ef4444' }}>
+              {status.healthStatus === 'Healthy' ? <><CheckCircle size={18} /> Healthy</> : <><XCircle size={18} /> {status.healthStatus}</>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Last Sync</div>
+            <div style={{ fontSize: 14 }}>{new Date(status.lastSync).toLocaleString()}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Deployed Version</div>
+            <div style={{ fontSize: 14, fontFamily: 'monospace' }}>{status.version}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const CICD_GUIDE_MD = `
+# Panduan & Pengertian CI/CD Pipeline
+
+Dokumen ini adalah panduan lengkap untuk memahami apa itu CI/CD (Continuous Integration / Continuous Deployment), serta konsep-konsep kunci seperti Jenkins, ArgoCD, dan GitOps yang digunakan di aplikasi DiyahQA Hub.
+
+---
+
+## 1. Apa itu CI/CD?
+
+**CI/CD** adalah metode untuk mengotomatisasi proses pengembangan, pengujian, dan pengiriman aplikasi ke server secara terus-menerus.
+
+* **CI (Continuous Integration):** Proses otomatisasi untuk menggabungkan kode baru dari berbagai _developer_ ke dalam _repository_ utama. Setiap ada perubahan kode, sistem CI akan melakukan proses _Build_ dan _Test_ otomatis (seperti Unit Test, SAST) untuk memastikan kode tersebut tidak merusak aplikasi.
+* **CD (Continuous Delivery / Deployment):** Proses otomatisasi setelah CI berhasil. CD bertanggung jawab mengirim dan menginstal aplikasi yang sudah lulus uji (berupa _Artifact_ atau _Docker Image_) ke *environment* tujuan (Staging atau Production).
+
+---
+
+## 2. Mengenal Tools CI/CD di DiyahQA Hub
+
+### 👨‍💼 Jenkins (Sang Eksekutor CI)
+* **Pengertian:** Jenkins adalah server otomatisasi open-source yang sangat populer. Di DiyahQA Hub, Jenkins bertindak sebagai "mandor" yang mengerjakan tugas-tugas berat.
+* **Tugas Utama:**
+  1. Mengunduh kode sumber (_Source Code_).
+  2. Menjalankan skrip *Build* (contoh: \`npm run build\`).
+  3. Menjalankan *Unit Test* dan *Security Scan* (SCA/SAST).
+  4. Membuat _Artifact_ atau membungkus aplikasi menjadi *Docker Image*.
+
+### 🐙 ArgoCD (Sang Manajer CD GitOps)
+* **Pengertian:** ArgoCD adalah *tool* CD *declarative* khusus untuk Kubernetes (K8s) yang menggunakan pendekatan **GitOps**. 
+* **GitOps:** Pendekatan di mana repositori Git digunakan sebagai "sumber kebenaran tunggal" (*Single Source of Truth*) untuk konfigurasi infrastruktur dan aplikasi.
+* **Tugas Utama:** ArgoCD memantau *repository* Git secara terus-menerus. Jika ada perubahan versi aplikasi di Git, ArgoCD akan langsung menarik (*pull*) dan menyamakan kondisi server Kubernetes agar persis 100% dengan apa yang tertulis di Git.
+
+---
+
+## 3. Alur Kerja CI/CD (Best Practice)
+
+1. **Commit & Push:** Developer menulis kode dan melakukan \`git push\` ke GitHub/GitLab.
+2. **Trigger Jenkins (CI):** Webhook akan memberi tahu Jenkins untuk mulai bekerja. Jenkins mengunduh kode, lalu menjalankan _Build_ & _Test_.
+3. **Build Artifact:** Jika tes lulus, Jenkins membuat *Docker Image* baru (misal versi \`v1.2.0\`) dan mengunggahnya ke _Container Registry_ (Docker Hub).
+4. **Update Manifest (GitOps):** Jenkins lalu meng-_update_ file konfigurasi di repositori Git (mengubah versi dari \`v1.1.0\` menjadi \`v1.2.0\`).
+5. **Sync by ArgoCD (CD):** ArgoCD mendeteksi perubahan file di Git. ArgoCD lalu mengunduh *Docker Image* \`v1.2.0\` dan me-_deploy_-nya ke server *Staging* atau *Production*.
+
+> **Cara Menggunakan Fitur Ini di DiyahQA Hub:**
+> Anda dapat menyimpan kredensial Jenkins dan ArgoCD menggunakan menu **⚙️ Pengaturan CI/CD**. Kredensial akan disimpan aman di HashiCorp Vault. Setelah terhubung, Anda dapat memonitor status *Build* Jenkins atau menyelaraskan (*Sync*) ArgoCD langsung dari *dashboard* ini!
+`;
+
+function CICDGuideTab() {
+  const renderMarkdown = (text) =>
+    text
+      .replace(/^### (.+)$/gm, '<h3 style="color:var(--text-primary);margin:12px 0 6px;font-size:16px">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 style="color:var(--primary-color);margin:20px 0 8px;font-size:18px;border-bottom:1px solid var(--border-color);padding-bottom:4px">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 style="color:var(--text-primary);margin:20px 0 10px;font-size:24px">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:#0f172a;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px;color:#38bdf8">$1</code>')
+      .replace(/^- (.+)$/gm, '<li style="margin:6px 0;color:var(--text-secondary)">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li style="margin:6px 0;color:var(--text-secondary)">$2</li>')
+      .replace(/^> (.+)$/gm, '<blockquote style="border-left:4px solid var(--primary-color);padding-left:12px;margin:16px 0;color:var(--text-secondary);background:rgba(59, 130, 246, 0.1);padding:12px;border-radius:0 8px 8px 0">$1</blockquote>')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+
+  return (
+    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto', fontSize: 14, lineHeight: 1.8, color: 'var(--text-color)' }}
+         dangerouslySetInnerHTML={{ __html: renderMarkdown(CICD_GUIDE_MD) }} />
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'academy',    label: '📚 Academy' },
-  { id: 'visualizer', label: '🗺️ Visualizer' },
-  { id: 'builder',    label: '⚙️ Pipeline Builder' },
-  { id: 'runner',     label: '▶️ Runner' },
-  { id: 'failure',    label: '🔥 Failure Analyzer' },
-  { id: 'validator',  label: '✅ YAML Validator' },
-  { id: 'artifacts',  label: '📦 Artifacts' },
-  { id: 'readiness',  label: '🛡️ Readiness Gate' },
-  { id: 'webhook',    label: '🚀 Trigger & Classify' },
-  { id: 'assistant',  label: '🤖 AI Assistant' },
+  { id: 'academy',    label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Book size={16} /> Academy</span> },
+  { id: 'guide',      label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><BookOpen size={16} /> Panduan CI/CD</span> },
+  { id: 'visualizer', label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Map size={16} /> Visualizer</span> },
+  { id: 'builder',    label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Settings size={16} /> Pipeline Builder</span> },
+  { id: 'runner',     label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Play size={16} /> Runner</span> },
+  { id: 'jenkins',    label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Server size={16} /> Jenkins Control</span> },
+  { id: 'argocd',     label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><GitPullRequest size={16} /> ArgoCD Sync</span> },
+  { id: 'failure',    label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Flame size={16} /> Failure Analyzer</span> },
+  { id: 'validator',  label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><CheckSquare size={16} /> YAML Validator</span> },
+  { id: 'artifacts',  label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Box size={16} /> Artifacts</span> },
+  { id: 'readiness',  label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><ShieldCheck size={16} /> Readiness Gate</span> },
+  { id: 'webhook',    label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Webhook size={16} /> Trigger & Classify</span> },
+  { id: 'assistant',  label: <span style={{display: 'flex', alignItems: 'center', gap: 6}}><Bot size={16} /> AI Assistant</span> },
 ];
 
 export default function CICDLabPage() {
-  const [tab, setTab] = useState('academy');
+  const [tab, setTab] = useState('jenkins');
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <div className="cicd-container">
       <div className="cicd-header">
         <div>
           <h1 className="page-title">CI/CD Lab</h1>
-          <p className="page-subtitle">Pipeline visualizer, builder, simulator, failure analyzer, dan AI assistant</p>
+          <p className="page-subtitle">Pipeline visualizer, builder, Jenkins Control, ArgoCD GitOps, dan AI assistant</p>
         </div>
-        <TutorialPanel menuKey="cicdlab" />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className="btn btn-outline btn-sm" onClick={() => setShowSettings(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Settings size={14} /> Pengaturan CI/CD
+          </button>
+          <TutorialPanel menuKey="cicdlab" />
+        </div>
       </div>
+      
+      {showSettings && <CICDSettingsModal onClose={() => setShowSettings(false)} />}
+
       <div className="cicd-tabs">
         {TABS.map(t => (
           <button key={t.id} className={`cicd-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
@@ -933,9 +1182,12 @@ export default function CICDLabPage() {
       </div>
       <div className="cicd-content">
         {tab === 'academy'    && <AcademyTab />}
+        {tab === 'guide'      && <CICDGuideTab />}
         {tab === 'visualizer' && <PipelineVisualizerTab />}
         {tab === 'builder'    && <PipelineBuilderTab />}
         {tab === 'runner'     && <PipelineRunnerTab />}
+        {tab === 'jenkins'    && <JenkinsControlCenterTab />}
+        {tab === 'argocd'     && <ArgoCDTab />}
         {tab === 'failure'    && <FailureAnalyzerTab />}
         {tab === 'validator'  && <YAMLValidatorTab />}
         {tab === 'artifacts'  && <ArtifactExplorerTab />}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Key, X, EyeOff, Eye, Lock, RefreshCw, CheckCircle, Save } from 'lucide-react';
 
 // Environment rows yang ditampilkan di tabel (sesuai spreadsheet)
 const ENV_ROWS = [
@@ -91,12 +92,12 @@ export default function ProjectCredentialModal({ project, onClose }) {
         {/* Header */}
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">🔑 Project Credentials</h2>
+            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Key size={20} /> Project Credentials</h2>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               {project.name} — URL, username & password per environment
             </div>
           </div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
 
         <div style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: 2 }}>
@@ -175,7 +176,7 @@ export default function ProjectCredentialModal({ project, onClose }) {
                             onClick={() => setRevealed(p => ({ ...p, [envDef.key]: !p[envDef.key] }))}
                             title={isRevealed ? 'Hide' : 'Show'}
                           >
-                            {isRevealed ? '🙈' : '👁️'}
+                            {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
                           </button>
                         </div>
                       </td>
@@ -186,16 +187,16 @@ export default function ProjectCredentialModal({ project, onClose }) {
             </table>
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-            🔒 Password dienkripsi sebelum disimpan ke database.
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Lock size={12} /> Password dienkripsi sebelum disimpan ke database.
           </div>
         </div>
 
         {/* Footer */}
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Tutup</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? '⟳ Menyimpan...' : saved ? '✅ Tersimpan!' : '💾 Simpan'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {saving ? <><RefreshCw size={14} className="spin" /> Menyimpan...</> : saved ? <><CheckCircle size={14} /> Tersimpan!</> : <><Save size={14} /> Simpan</>}
           </button>
         </div>
       </div>

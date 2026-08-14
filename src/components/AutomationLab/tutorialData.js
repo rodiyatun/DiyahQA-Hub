@@ -1,10 +1,12 @@
 // ─── Tutorial Data ────────────────────────────────────────────────────────────
+import React from 'react';
+import { Rocket, Video, Bot, Layout, BarChart, RefreshCw } from 'lucide-react';
 
 export const TUTORIALS = [
   {
     id: 'getting-started',
     title: 'Mulai dari Awal',
-    icon: '🚀',
+    icon: <Rocket size={24}/>,
     duration: '5 menit',
     level: 'beginner',
     description: 'Buat project pertama dan jalankan test pertamamu.',
@@ -64,7 +66,7 @@ Report dibuka di browser default Mac kamu.`,
   {
     id: 'record-and-fix',
     title: 'Record & Fix Test',
-    icon: '🎬',
+    icon: <Video size={24}/>,
     duration: '10 menit',
     level: 'beginner',
     description: 'Cara merekam test, memperbaiki script, dan menjalankannya.',
@@ -113,7 +115,7 @@ await page.locator('.css-12xr6g8 > button:nth-child(2)').click();`,
   {
     id: 'ai-generator',
     title: 'Generate Test dengan AI',
-    icon: '🤖',
+    icon: <Bot size={24}/>,
     duration: '8 menit',
     level: 'intermediate',
     description: 'Generate Playwright script dari requirement atau deskripsi natural language.',
@@ -181,7 +183,7 @@ Buat Playwright TypeScript test untuk checkout di e-commerce:
   {
     id: 'page-object-workflow',
     title: 'Workflow Page Object Model',
-    icon: '🏗️',
+    icon: <Layout size={24}/>,
     duration: '15 menit',
     level: 'intermediate',
     description: 'Cara membuat dan menggunakan Page Object Model untuk test yang maintainable.',
@@ -281,7 +283,7 @@ test.describe('Login Feature', () => {
   {
     id: 'data-driven',
     title: 'Data Driven Testing',
-    icon: '📊',
+    icon: <BarChart size={24}/>,
     duration: '10 menit',
     level: 'intermediate',
     description: 'Jalankan test yang sama dengan banyak kombinasi data dari CSV atau JSON.',
@@ -348,7 +350,7 @@ for (const data of testData) {
   {
     id: 'cicd-integration',
     title: 'Integrasi CI/CD',
-    icon: '🔄',
+    icon: <RefreshCw size={24}/>,
     duration: '12 menit',
     level: 'advanced',
     description: 'Otomatiskan test di pipeline GitHub Actions setiap ada perubahan kode.',

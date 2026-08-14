@@ -1,10 +1,12 @@
 // ─── Playwright Academy Data ──────────────────────────────────────────────────
+import React from 'react';
+import { MonitorPlay, Target, CheckCircle, Rocket, Lightbulb } from 'lucide-react';
 
 export const PLAYWRIGHT_MODULES = [
   {
     id: 'intro',
     title: 'Pengenalan Playwright',
-    icon: '🎭',
+    icon: <MonitorPlay size={24}/>,
     lessons: [
       {
         id: 'what-is',
@@ -64,7 +66,7 @@ const page = await context.newPage();
   {
     id: 'locators',
     title: 'Locator Strategies',
-    icon: '🎯',
+    icon: <Target size={24}/>,
     lessons: [
       {
         id: 'locator-types',
@@ -126,7 +128,7 @@ await page.getByRole('dialog').screenshot({ path: 'dialog.png' });`,
   {
     id: 'assertions',
     title: 'Assertions',
-    icon: '✅',
+    icon: <CheckCircle size={24}/>,
     lessons: [
       {
         id: 'expect',
@@ -171,7 +173,7 @@ await expect.soft(page.getByText('Footer')).toBeVisible();
   {
     id: 'advanced',
     title: 'Teknik Lanjutan',
-    icon: '🚀',
+    icon: <Rocket size={24}/>,
     lessons: [
       {
         id: 'network',
@@ -343,7 +345,7 @@ await context.tracing.stop({ path: 'trace.zip' });
   {
     id: 'best-practices',
     title: 'Best Practices',
-    icon: '💡',
+    icon: <Lightbulb size={24}/>,
     lessons: [
       {
         id: 'pom',

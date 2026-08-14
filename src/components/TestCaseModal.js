@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 
 const STATUS_OPTIONS = ['Pending', 'Pass', 'Fail', 'Skip', 'Blocked'];
 
@@ -31,7 +32,7 @@ export default function TestCaseModal({ testcase, onSave, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h2 className="modal-title">{testcase ? 'Edit Test Case' : 'Tambah Test Case'}</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>

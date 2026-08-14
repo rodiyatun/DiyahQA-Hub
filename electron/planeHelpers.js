@@ -181,6 +181,39 @@ async function getTodoStateId(apiKey, workspaceSlug, projectId, baseUrl = PLANE_
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 2a. Fetch Plane Labels, Modules, Cycles
+// ─────────────────────────────────────────────────────────────────────────────
+async function getPlaneLabels(apiKey, workspaceSlug, projectId, baseUrl = PLANE_DEFAULT_API_BASE_URL) {
+  const path = `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/labels/?per_page=100`;
+  const result = await planeRequest('GET', path, apiKey, null, DEFAULT_TIMEOUT_MS, baseUrl);
+  if (!result.ok || !result.data) {
+    console.error(`[Plane] Failed to fetch labels: HTTP ${result.status} - ${result.error}`);
+    return [];
+  }
+  return Array.isArray(result.data.results) ? result.data.results : (Array.isArray(result.data) ? result.data : []);
+}
+
+async function getPlaneModules(apiKey, workspaceSlug, projectId, baseUrl = PLANE_DEFAULT_API_BASE_URL) {
+  const path = `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/modules/?per_page=100`;
+  const result = await planeRequest('GET', path, apiKey, null, DEFAULT_TIMEOUT_MS, baseUrl);
+  if (!result.ok || !result.data) {
+    console.error(`[Plane] Failed to fetch modules: HTTP ${result.status} - ${result.error}`);
+    return [];
+  }
+  return Array.isArray(result.data.results) ? result.data.results : (Array.isArray(result.data) ? result.data : []);
+}
+
+async function getPlaneCycles(apiKey, workspaceSlug, projectId, baseUrl = PLANE_DEFAULT_API_BASE_URL) {
+  const path = `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/cycles/?per_page=100`;
+  const result = await planeRequest('GET', path, apiKey, null, DEFAULT_TIMEOUT_MS, baseUrl);
+  if (!result.ok || !result.data) {
+    console.error(`[Plane] Failed to fetch cycles: HTTP ${result.status} - ${result.error}`);
+    return [];
+  }
+  return Array.isArray(result.data.results) ? result.data.results : (Array.isArray(result.data) ? result.data : []);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 3. mapBugToPlanePayload
 // ─────────────────────────────────────────────────────────────────────────────
 /**
@@ -192,7 +225,7 @@ async function getTodoStateId(apiKey, workspaceSlug, projectId, baseUrl = PLANE_
  * @param {string|null} todoStateId
  * @returns {{ name: string, description_html: string, priority: string, state_id: string|null }}
  */
-function mapBugToPlanePayload(bug, todoState) {
+function mapBugToPlanePayload(bug, todoState, additionalData = {}) {
   const safe = (v) => (v && String(v).trim() ? String(v) : '-');
 
   // todoState can be { id, name } object (new) or a string state_id (legacy)
@@ -221,12 +254,27 @@ function mapBugToPlanePayload(bug, todoState) {
   const priorityKey = bug.priority ? String(bug.priority).toLowerCase() : '';
   const priority = PRIORITY_MAP[priorityKey] || 'none';
 
-  return {
+  const payload = {
     name:             String(bug.title || ''),
     description_html: description_html,
     priority:         priority,
     state_id:         stateId || null,
   };
+
+  if (additionalData.labelIds && additionalData.labelIds.length > 0) {
+    payload.label_ids = additionalData.labelIds;
+    payload.labels = additionalData.labelIds;
+  }
+  if (additionalData.moduleIds && additionalData.moduleIds.length > 0) {
+    payload.module_ids = additionalData.moduleIds;
+    payload.modules = additionalData.moduleIds;
+  }
+  if (additionalData.cycleId) {
+    payload.cycle_id = additionalData.cycleId;
+    payload.cycle = additionalData.cycleId;
+  }
+
+  return payload;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -392,4 +440,7 @@ module.exports = {
   isConfigValid,
   shouldAutoSync,
   sendGoogleChatNotification,
+  getPlaneLabels,
+  getPlaneModules,
+  getPlaneCycles,
 };

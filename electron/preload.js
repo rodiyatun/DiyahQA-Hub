@@ -26,6 +26,34 @@ contextBridge.exposeInMainWorld('api', {
   importBugCSV: (data) => ipcRenderer.invoke('import-bug-csv', data),
   importBugPlane: (data) => ipcRenderer.invoke('import-bug-plane', data),
 
+  // Teams & Admin
+  getUsers: () => ipcRenderer.invoke('get-users'),
+  addUser: (data) => ipcRenderer.invoke('add-user', data),
+  updateUserRole: (data) => ipcRenderer.invoke('update-user-role', data),
+  deleteUser: (id) => ipcRenderer.invoke('delete-user', id),
+  getAuditLogs: () => ipcRenderer.invoke('get-audit-logs'),
+  addAuditLog: (data) => ipcRenderer.invoke('add-audit-log', data),
+  getApiKeys: () => ipcRenderer.invoke('get-api-keys'),
+  createApiKey: (data) => ipcRenderer.invoke('create-api-key', data),
+  revokeApiKey: (id) => ipcRenderer.invoke('revoke-api-key', id),
+  getWorkspaces: () => ipcRenderer.invoke('get-workspaces'),
+  createWorkspace: (data) => ipcRenderer.invoke('create-workspace', data),
+  switchWorkspace: (id) => ipcRenderer.invoke('switch-workspace', id),
+
+  // HashiCorp Vault
+  getVaultConfig: () => ipcRenderer.invoke('vault-config-get'),
+  setVaultConfig: (config) => ipcRenderer.invoke('vault-config-set', config),
+  writeVaultSecret: (secretPath, data) => ipcRenderer.invoke('vault-write', { secretPath, data }),
+  readVaultSecret: (secretPath) => ipcRenderer.invoke('vault-read', { secretPath }),
+
+  // CI/CD & DevSecOps Simulators
+  triggerJenkinsPipeline: (config) => ipcRenderer.invoke('trigger-jenkins-pipeline', config),
+  getArgoCDStatus: () => ipcRenderer.invoke('get-argocd-status'),
+  runSecretScan: () => ipcRenderer.invoke('run-secret-scan'),
+  runScaScan: () => ipcRenderer.invoke('run-sca-scan'),
+  runSastScan: () => ipcRenderer.invoke('run-sast-scan'),
+  runDastScan: (data) => ipcRenderer.invoke('run-dast-scan', data),
+
   // SQL Lab
   runSQL: (data) => ipcRenderer.invoke('run-sql', data),
 
@@ -42,11 +70,26 @@ contextBridge.exposeInMainWorld('api', {
   saveTextFile: (data) => ipcRenderer.invoke('save-text-file', data),
 
   // Web Automation Lab
-  waListProjects:  ()     => ipcRenderer.invoke('wa-list-projects'),
+  waListProjects:          () => ipcRenderer.invoke('wa-list-projects'),
+  waGetDesignLinks:        (projectPath) => ipcRenderer.invoke('wa-get-design-links', projectPath),
+  waSaveDesignLinks:       (projectPath, data) => ipcRenderer.invoke('wa-save-design-links', projectPath, data),
+  waListFiles:             (projectPath) => ipcRenderer.invoke('wa-list-files', projectPath),
+  waGetFileContent:        (filePath) => ipcRenderer.invoke('wa-get-file-content', filePath),
+  waSaveFileContent:       (filePath, content) => ipcRenderer.invoke('wa-save-file-content', filePath, content),
+  waRunTest:               (projectPath, filePath) => ipcRenderer.invoke('wa-run-test', projectPath, filePath),
+
+  // Antigravity
+  generateWithAntigravity: (tc, projectPath) => ipcRenderer.invoke('generate-with-antigravity', tc, projectPath),
+  askAntigravity:          (prompt) => ipcRenderer.invoke('askAntigravity', prompt),
+  scheduleAITask:          (prompt) => ipcRenderer.invoke('schedule-ai-task', prompt),
+  getActiveSchedules:      () => ipcRenderer.invoke('get-active-schedules'),
+  waAntigravityExplore:    (data) => ipcRenderer.invoke('wa-antigravity-explore', data),
+  waAntigravityHeal:       (data) => ipcRenderer.invoke('wa-antigravity-heal', data),
+  waAntigravityData:       (data) => ipcRenderer.invoke('wa-antigravity-data', data),
+
   waCreateProject: (data) => ipcRenderer.invoke('wa-create-project', data),
   waReadFile:      (data) => ipcRenderer.invoke('wa-read-file', data),
   waWriteFile:     (data) => ipcRenderer.invoke('wa-write-file', data),
-  waListFiles:     (data) => ipcRenderer.invoke('wa-list-files', data),
   waDeleteFile:    (data) => ipcRenderer.invoke('wa-delete-file', data),
   waRun:           (data) => ipcRenderer.invoke('wa-run', data),
   waStop:          ()     => ipcRenderer.invoke('wa-stop'),
@@ -125,6 +168,9 @@ contextBridge.exposeInMainWorld('api', {
 
   // Plane Integration
   transferBugToPlane:      (data) => ipcRenderer.invoke('transfer-bug-to-plane', data),
+  getPlaneLabels:          () => ipcRenderer.invoke('get-plane-labels'),
+  getPlaneModules:         () => ipcRenderer.invoke('get-plane-modules'),
+  getPlaneCycles:          () => ipcRenderer.invoke('get-plane-cycles'),
   transferBugsBulkToPlane: (data) => ipcRenderer.invoke('transfer-bugs-bulk-to-plane', data),
   syncPlaneStatus:         (data) => ipcRenderer.invoke('sync-plane-status', data),
   savePlaneConfig:         (data) => ipcRenderer.invoke('save-plane-config', data),

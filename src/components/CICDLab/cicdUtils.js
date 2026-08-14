@@ -4,6 +4,7 @@ export function generatePipeline(config) {
   const {
     platform, name, branch, nodeVersion, browsers,
     retries, uploadArtifact, notifySlack, timeout,
+    sastScans, dastScan,
   } = config;
 
   const browsersStr = (browsers || ['chromium']).join(' ');
@@ -31,6 +32,27 @@ export function generatePipeline(config) {
           slack-message: '❌ Pipeline \${{ github.workflow }} gagal di \${{ github.ref }}'
         env:
           SLACK_BOT_TOKEN: \${{ secrets.SLACK_BOT_TOKEN }}` : '';
+
+  const sastStep = sastScans ? `
+      - name: Run Trivy vulnerability scanner (SCA)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: SonarQube Scan (SAST)
+        uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: \${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: \${{ secrets.SONAR_HOST_URL }}` : '';
+
+  const dastStep = dastScan ? `
+      - name: OWASP ZAP Baseline Scan (DAST)
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: \${{ secrets.BASE_URL }}` : '';
 
   if (platform === 'github-actions') {
     return `name: ${nameVal}
@@ -67,7 +89,7 @@ jobs:
         env:
           BASE_URL: \${{ secrets.BASE_URL }}
           CI: true
-${artifactStep}${notifyStep}
+${sastStep}${dastStep}${artifactStep}${notifyStep}
 `;
   }
 
@@ -100,6 +122,20 @@ playwright-test:
   only:
     - ${branchVal}
     - merge_requests
+${sastScans ? `
+sast-scan:
+  stage: test
+  script:
+    - echo "Running Trivy and SonarQube..."
+    - trivy fs --exit-code 1 .
+    - sonar-scanner
+` : ''}${dastScan ? `
+dast-scan:
+  stage: test
+  script:
+    - echo "Running OWASP ZAP Scan..."
+    - docker run -t owasp/zap2docker-stable zap-baseline.py -t $BASE_URL
+` : ''}
 `;
   }
 
@@ -139,6 +175,20 @@ playwright-test:
                 }
             }
         }
+${sastScans ? `
+        stage('SCA & SAST Scans') {
+            steps {
+                sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL .'
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }` : ''}${dastScan ? `
+        stage('DAST Scan (OWASP ZAP)') {
+            steps {
+                sh 'docker run -t owasp/zap2docker-stable zap-baseline.py -t \${BASE_URL}'
+            }
+        }` : ''}
     }
 
     post {
@@ -244,6 +294,14 @@ npx playwright test
     ...(config.uploadArtifact ? [{
       id: 'upload', name: '📤 Upload Report', duration: 800, status: 'pending',
       log: 'Uploading playwright-report/\nArtifact uploaded: playwright-report (2.4MB)\nArtifact URL: https://github.com/.../actions/runs/...',
+    }] : []),
+    ...(config.sastScans ? [{
+      id: 'sast', name: '🛡️ Security Scans (SCA/SAST)', duration: 3500, status: 'pending',
+      log: 'Running Trivy FS scan...\n[INFO] 0 CRITICAL vulnerabilities found\nRunning SonarQube analysis...\n[INFO] Quality Gate: PASSED',
+    }] : []),
+    ...(config.dastScan ? [{
+      id: 'dast', name: '🕷️ DAST Scan (OWASP ZAP)', duration: 4500, status: 'pending',
+      log: 'Starting OWASP ZAP Baseline Scan...\nTarget: staging environment\n[WARN] Missing Anti-clickjacking Header\n[INFO] Scan completed: 0 High Alerts',
     }] : []),
   ];
 }

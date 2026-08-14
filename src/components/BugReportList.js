@@ -4,6 +4,11 @@ import BugReportDetailModal from './BugReportDetailModal';
 import { BugCategoryBadge } from './BugClassifier';
 import TutorialPanel from './TutorialPanel';
 import Papa from 'papaparse';
+import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { supabase } from '../lib/supabaseClient';
+import { exportToPDF } from '../utils/pdfExport';
+import { isDesktop, requireDesktop } from '../utils/platform';
 import './BugReportList.css';
 
 const DEFAULT_PROJECT_ID = '65975ef6-fe92-43b0-bc11-293d6fe5c666';
@@ -52,42 +57,104 @@ function PlaneStatusBadge({ bug }) {
   );
 }
 
-// ── AssigneeEmailModal ────────────────────────────────────────────
-function AssigneeEmailModal({ onConfirm, onCancel }) {
+// ── PlaneTransferModal ────────────────────────────────────────────
+function PlaneTransferModal({ onConfirm, onCancel }) {
   const [email, setEmail] = useState('');
+  const [labels, setLabels] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [cycles, setCycles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedLabels, setSelectedLabels] = useState([]);
+  const [selectedModule, setSelectedModule] = useState('');
+  const [selectedCycle, setSelectedCycle] = useState('');
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [lbls, mods, cycs] = await Promise.all([
+          window.api.getPlaneLabels(),
+          window.api.getPlaneModules(),
+          window.api.getPlaneCycles()
+        ]);
+        setLabels(lbls || []);
+        setModules(mods || []);
+        setCycles(cycs || []);
+      } catch (err) {
+        console.error('Failed to load Plane data', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  function handleLabelChange(e) {
+    const options = Array.from(e.target.options);
+    const selected = options.filter(o => o.selected).map(o => o.value);
+    setSelectedLabels(selected);
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    onConfirm(email);
+    onConfirm({
+      email,
+      labelIds: selectedLabels,
+      moduleIds: selectedModule ? [selectedModule] : [],
+      cycleId: selectedCycle || null
+    });
   }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onCancel()}>
-      <div className="modal" style={{ maxWidth: 400, width: '100%' }}>
+      <div className="modal" style={{ maxWidth: 500, width: '100%' }}>
         <div className="modal-header">
           <h2 className="modal-title">✈️ Transfer ke Plane</h2>
           <button className="btn btn-ghost btn-icon" onClick={onCancel}>✕</button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div style={{ padding: '12px 0 8px' }}>
-            <div className="form-group">
-              <label>Assignee Email <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span></label>
-              <input
-                type="email"
-                autoFocus
-                maxLength={255}
-                placeholder="contoh: diyahdo123@gmail.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-              <small style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                Kosongkan jika tidak perlu assign ke siapapun
-              </small>
+        {loading ? (
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>Memuat data dari Plane...</div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ padding: '12px 0 8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="form-group">
+                <label>Assignee Email <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span></label>
+                <input
+                  type="email"
+                  maxLength={255}
+                  placeholder="contoh: diyahdo123@gmail.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label>Tags / Labels</label>
+                <select multiple style={{ height: 100 }} value={selectedLabels} onChange={handleLabelChange}>
+                  {labels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+                <small style={{ color: 'var(--text-muted)', fontSize: 11 }}>Tahan Ctrl/Cmd untuk memilih lebih dari satu</small>
+              </div>
+              <div className="form-group">
+                <label>Module Workspace</label>
+                <select value={selectedModule} onChange={e => setSelectedModule(e.target.value)}>
+                  <option value="">-- Pilih Module (opsional) --</option>
+                  {modules.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Cycle / Sprint</label>
+                <select value={selectedCycle} onChange={e => setSelectedCycle(e.target.value)}>
+                  <option value="">-- Pilih Cycle (opsional) --</option>
+                  {cycles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
             </div>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onCancel}>Batal</button>
-            <button type="submit" className="btn btn-primary">Transfer</button>
-          </div>
-        </form>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={onCancel}>Batal</button>
+              <button type="submit" className="btn btn-primary">Transfer</button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -317,6 +384,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   const [filterPriority, setFilterPriority] = useState('');
   const [filterProject, setFilterProject] = useState('');
   const [filterModule, setFilterModule] = useState('');
+  const [filterPlaneStatus, setFilterPlaneStatus] = useState('');
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
   const [selected, setSelected] = useState([]);
@@ -335,7 +403,25 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   const [broadcastResult, setBroadcastResult] = useState(null); // { ok, message }
   const [collapsedReady, setCollapsedReady] = useState(false);
   // Assignee email modal state
-  const [assigneeModalState, setAssigneeModalState] = useState(null); // { bugId, resolve }
+  const [planeTransferModalState, setPlaneTransferModalState] = useState(null); // { resolve }
+  
+  const { role, user } = useAuth();
+  const { activeWorkspaceId } = useWorkspace();
+
+  // ── Column visibility (sama seperti TestCaseList) ─────────────
+  const [showColMenu, setShowColMenu] = useState(false);
+  const [visibleCols, setVisibleCols] = useState({
+    bugNo: true, title: true, severity: true, priority: false,
+    status: true, planeStatus: true, tipe: true, reporter: true,
+    assignee: false, module: true, environment: false, created: true, actions: true
+  });
+  function toggleCol(col) { setVisibleCols(p => ({ ...p, [col]: !p[col] })); }
+  const COL_LABELS = {
+    bugNo: 'Bug No', title: 'Title', severity: 'Severity', priority: 'Priority',
+    status: 'Status', planeStatus: 'Plane Status', tipe: 'Tipe', reporter: 'Reporter',
+    assignee: 'Assignee', module: 'Module', environment: 'Environment',
+    created: 'Created', actions: 'Actions'
+  };
 
   // Load on mount and when selectedProject changes
   useEffect(() => {
@@ -359,6 +445,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     if (filterSeverity) result = result.filter(b => b.severity === filterSeverity);
     if (filterPriority) result = result.filter(b => b.priority === filterPriority);
     if (filterModule) result = result.filter(b => b.module === filterModule);
+    if (filterPlaneStatus) result = result.filter(b => b.plane_status === filterPlaneStatus);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(b =>
@@ -375,7 +462,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
     });
     setFiltered(result);
-  }, [bugs, search, filterStatus, filterSeverity, filterPriority, filterProject, filterModule, sortField, sortDir]);
+  }, [bugs, search, filterStatus, filterSeverity, filterPriority, filterProject, filterModule, filterPlaneStatus, sortField, sortDir]);
 
   // ── Plane config helpers ──────────────────────────────────────
   async function loadPlaneConfig() {
@@ -396,10 +483,11 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
 
     setSyncStatus('syncing');
     try {
-      await window.api.syncPlaneStatus({});
+      if (isDesktop()) {
+        await window.api.syncPlaneStatus({});
+      }
       lastSyncRef.current = Date.now();
-      const data = await window.api.getBugReports(null);
-      setBugs(data || []);
+      await loadBugReports();
       setSyncStatus('idle');
     } catch {
       setSyncStatus('error');
@@ -408,9 +496,25 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   }
 
   async function loadBugReports() {
-    const data = await window.api.getBugReports(null);
-    setBugs(data || []);
-    setSelected([]);
+    try {
+      let query = supabase
+        .from('bug_reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Filter by workspace if available
+      if (activeWorkspaceId) {
+        query = query.eq('workspace_id', activeWorkspaceId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setBugs(data || []);
+      setSelected([]);
+    } catch (err) {
+      console.error(err);
+      setBugs([]);
+    }
     const config = await loadPlaneConfig();
     if (config && config.apiKey) {
       triggerAutoSync(config);
@@ -454,17 +558,22 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
       if (!ok) return;
     }
 
-    // Show assignee email modal — returns email string or null if cancelled
-    const assigneeEmail = await new Promise((resolve) => {
-      setAssigneeModalState({ bugId, resolve });
+    const transferData = await new Promise((resolve) => {
+      setPlaneTransferModalState({ resolve });
     });
 
     // null means user cancelled
-    if (assigneeEmail === null) return;
+    if (transferData === null) return;
 
     setTransferringIds(prev => [...prev, bugId]);
     try {
-      const result = await window.api.transferBugToPlane({ bugId, assigneeEmail: assigneeEmail.trim() });
+      const result = await window.api.transferBugToPlane({ 
+        bugId, 
+        assigneeEmail: transferData.email?.trim(),
+        labelIds: transferData.labelIds,
+        moduleIds: transferData.moduleIds,
+        cycleId: transferData.cycleId
+      });
       if (result && result.success) {
         setBugs(prev => prev.map(b =>
           b.id === bugId
@@ -500,9 +609,21 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     );
     if (!ok) return;
 
+    const transferData = await new Promise((resolve) => {
+      setPlaneTransferModalState({ resolve });
+    });
+
+    if (transferData === null) return;
+
     setBulkTransferring(true);
     try {
-      const result = await window.api.transferBugsBulkToPlane({ bugIds: selected });
+      const result = await window.api.transferBugsBulkToPlane({ 
+        bugIds: selected,
+        assigneeEmail: transferData.email?.trim(),
+        labelIds: transferData.labelIds,
+        moduleIds: transferData.moduleIds,
+        cycleId: transferData.cycleId
+      });
       await loadBugReports();
 
       if (result && result.results) {
@@ -533,14 +654,25 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
 
   // ── Existing handlers ─────────────────────────────────────────
   async function handleSaveBug(formData) {
-    if (editingBug) {
-      await window.api.updateBugReport({ ...formData, id: editingBug.id });
-    } else {
-      await window.api.createBugReport(formData);
+    try {
+      if (editingBug) {
+        const { error } = await supabase.from('bug_reports').update(formData).eq('id', editingBug.id);
+        if (error) throw error;
+      } else {
+        const insertData = {
+          ...formData,
+          workspace_id: activeWorkspaceId || null,
+          created_by: user?.id || null,
+        };
+        const { error } = await supabase.from('bug_reports').insert([insertData]);
+        if (error) throw error;
+      }
+      await loadBugReports();
+      setShowModal(false);
+      setEditingBug(null);
+    } catch (err) {
+      alert("Error saving bug report: " + err.message);
     }
-    await loadBugReports();
-    setShowModal(false);
-    setEditingBug(null);
     if (onClearPrefill) {
       onClearPrefill();
       if (transferLabel) {
@@ -550,15 +682,26 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Hapus bug report ini?')) return;
-    await window.api.deleteBugReport(id);
-    await loadBugReports();
+    if (!window.confirm('Delete this bug report?')) return;
+    try {
+      const { error } = await supabase.from('bug_reports').delete().eq('id', id);
+      if (error) throw error;
+      await loadBugReports();
+    } catch (err) {
+      alert("Error deleting bug report: " + err.message);
+    }
   }
 
   async function handleBulkDelete() {
-    if (!window.confirm(`Hapus ${selected.length} bug report?`)) return;
-    for (const id of selected) await window.api.deleteBugReport(id);
-    await loadBugReports();
+    if (!window.confirm(`Delete ${selected.length} bug reports?`)) return;
+    try {
+      for (const id of selected) {
+        await supabase.from('bug_reports').delete().eq('id', id);
+      }
+      await loadBugReports();
+    } catch (err) {
+      alert("Error deleting bug reports: " + err.message);
+    }
   }
 
   async function handleImportCSV() {
@@ -575,6 +718,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
       (result.errors?.length ? `\n\nError:\n${result.errors.slice(0, 5).join('\n')}` : '');
     alert(msg);
   }
+
 
   async function handleImportPlane() {
     const targetProjectId = filterProject || (projects.length === 1 ? String(projects[0].id) : null);
@@ -613,6 +757,18 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     }));
     const csv = Papa.unparse(data);
     await window.api.saveFileDialog({ defaultName: `bug-reports-${Date.now()}.csv`, content: csv });
+  }
+
+  async function handleExportPDF() {
+    const headers = ['Bug No', 'Title', 'Severity', 'Status', 'Assignee'];
+    const body = filtered.map(b => [
+      b.bug_number || '-',
+      b.title || '-',
+      b.severity || '-',
+      b.status || '-',
+      b.assignee || '-'
+    ]);
+    exportToPDF(`Bug Reports`, headers, body, `bug-reports-${Date.now()}.pdf`);
   }
 
   function toggleSelect(id) {
@@ -719,6 +875,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           <button className="btn btn-secondary btn-sm" onClick={handleImportCSV}>📥 Import CSV</button>
           <button className="btn btn-secondary btn-sm" onClick={handleImportPlane}>📋 Import Plane</button>
           <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>📤 Export CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>📄 Export PDF</button>
           <button className="btn btn-secondary btn-sm" onClick={handleOpenPlaneSettings}>⚙️ Plane</button>
           <TutorialPanel menuKey="bugreports" />
           {readyBugs.length > 0 && (
@@ -731,13 +888,15 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
               {broadcasting ? '⏳ Mengirim...' : `🚀 Broadcast Release (${readyBugs.length})`}
             </button>
           )}
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => { setEditingBug(null); setShowModal(true); }}
-            disabled={bulkTransferring}
-          >
-            + Tambah Bug
-          </button>
+          {role !== 'viewer' && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => { setEditingBug(null); setShowModal(true); }}
+              disabled={bulkTransferring}
+            >
+              + Tambah Bug
+            </button>
+          )}
         </div>
       </div>
 
@@ -856,15 +1015,52 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           <option value="">All Module</option>
           {modules.map(m => <option key={m}>{m}</option>)}
         </select>
+        <select value={filterPlaneStatus} onChange={e => setFilterPlaneStatus(e.target.value)}>
+          <option value="">All Plane Status</option>
+          {[...new Set(bugs.map(b => b.plane_status).filter(Boolean))].sort().map(s => <option key={s}>{s}</option>)}
+        </select>
         {selected.length > 0 && (
           <>
+            {role === 'admin' && (
             <button className="btn btn-danger btn-sm" onClick={handleBulkDelete} disabled={bulkTransferring}>🗑️ Delete ({selected.length})</button>
+            )}
             <button className="btn btn-secondary btn-sm" onClick={handleBulkTransfer} disabled={bulkTransferring}>
               {bulkTransferring ? '⏳ Mentransfer...' : `✈️ Transfer ke Plane (${selected.length})`}
             </button>
           </>
         )}
         <span className="bug-count">{filtered.length} Bug</span>
+
+        {/* Column toggle */}
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowColMenu(v => !v)}
+            title="Show/Hide columns"
+          >⊞ Kolom</button>
+          {showColMenu && (
+            <div style={{
+              position: 'absolute', top: '110%', right: 0, background: 'var(--bg-secondary, #1e293b)',
+              border: '1px solid var(--border)', borderRadius: 8, padding: '8px 0',
+              zIndex: 50, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 160
+            }}>
+              {Object.keys(COL_LABELS).map(col => (
+                <label key={col} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 16px', cursor: 'pointer', fontSize: 13,
+                  color: 'var(--text-primary)'
+                }}>
+                  <input
+                    type="checkbox" checked={visibleCols[col]}
+                    onChange={() => toggleCol(col)}
+                    style={{ width: 'auto', accentColor: '#6366f1' }}
+                  />
+                  {COL_LABELS[col]}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -881,37 +1077,41 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
                   style={{ width: 'auto', cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ width: 90 }}>Bug No</th>
-              <th>Title</th>
-              <th style={{ width: 100 }}>Severity</th>
-              <th style={{ width: 90 }}>Priority</th>
-              <th style={{ width: 120 }}>Status</th>
-              <th style={{ width: 110 }}>
-                Plane Status{' '}
-                <button
-                  className="btn btn-ghost btn-icon"
-                  style={{ fontSize: 11, padding: '1px 4px' }}
-                  onClick={() => handleManualSync()}
-                  title="Sync status dari Plane"
-                  disabled={syncStatus === 'syncing'}
-                >
-                  {syncStatus === 'syncing' ? '⏳' : '🔄'}
-                </button>
-                {syncStatus === 'error' && (
-                  <span style={{ fontSize: 10, color: '#ef4444', marginLeft: 2 }}>⚠️ Sync gagal</span>
-                )}
-              </th>
-              <th style={{ width: 80 }}>Tipe</th>
-              <th style={{ width: 100 }}>Reporter</th>
-              <th style={{ width: 110 }}>Module</th>
-              <th style={{ width: 100 }}>Created</th>
-              <th style={{ width: 80 }}>Actions</th>
+              {visibleCols.bugNo       && <th style={{ width: 90 }}>Bug No</th>}
+              {visibleCols.title       && <th>Title</th>}
+              {visibleCols.severity    && <th style={{ width: 100 }}>Severity</th>}
+              {visibleCols.priority    && <th style={{ width: 90 }}>Priority</th>}
+              {visibleCols.status      && <th style={{ width: 120 }}>Status</th>}
+              {visibleCols.planeStatus && (
+                <th style={{ width: 110 }}>
+                  Plane Status{' '}
+                  <button
+                    className="btn btn-ghost btn-icon"
+                    style={{ fontSize: 11, padding: '1px 4px' }}
+                    onClick={() => handleManualSync()}
+                    title="Sync status dari Plane"
+                    disabled={syncStatus === 'syncing'}
+                  >
+                    {syncStatus === 'syncing' ? '⏳' : '🔄'}
+                  </button>
+                  {syncStatus === 'error' && (
+                    <span style={{ fontSize: 10, color: '#ef4444', marginLeft: 2 }}>⚠️ Sync gagal</span>
+                  )}
+                </th>
+              )}
+              {visibleCols.tipe        && <th style={{ width: 80 }}>Tipe</th>}
+              {visibleCols.reporter    && <th style={{ width: 100 }}>Reporter</th>}
+              {visibleCols.assignee    && <th style={{ width: 100 }}>Assignee</th>}
+              {visibleCols.module      && <th style={{ width: 110 }}>Module</th>}
+              {visibleCols.environment && <th style={{ width: 110 }}>Environment</th>}
+              {visibleCols.created     && <th style={{ width: 100 }}>Created</th>}
+              {visibleCols.actions     && <th style={{ width: 80 }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={12} className="empty-row">Belum ada data bug report.</td>
+                <td colSpan={Object.values(visibleCols).filter(Boolean).length + 1} className="empty-row">Belum ada data bug report.</td>
               </tr>
             )}
             {filtered.map(b => (
@@ -929,45 +1129,53 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
                     style={{ width: 'auto', cursor: 'pointer' }}
                   />
                 </td>
-                <td className="bug-number">{b.bug_number || '—'}</td>
-                <td className="bug-title">{b.title}</td>
-                <td><span className={severityBadgeClass(b.severity)}>{b.severity}</span></td>
-                <td>{b.priority}</td>
-                <td><span className={statusBadgeClass(b.status)}>{b.status}</span></td>
-                <td onClick={e => e.stopPropagation()}>
-                  <PlaneStatusBadge bug={b} />
-                </td>
-                <td>
-                  <BugCategoryBadge bug={b} />
-                </td>
-                <td className="bug-reporter">{b.reporter || '—'}</td>
-                <td className="bug-module">{b.module || '—'}</td>
-                <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(b.created_at)}</td>
-                <td onClick={e => e.stopPropagation()}>
-                  <div className="bug-actions">
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={() => handleTransferSingle(b.id)}
-                      title={b.plane_issue_id ? 'Transfer ulang ke Plane' : 'Transfer ke Plane'}
-                      disabled={transferringIds.includes(b.id) || bulkTransferring}
-                    >
-                      {transferringIds.includes(b.id) ? '⏳' : '✈️'}
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={() => { setEditingBug(b); setShowModal(true); }}
-                      title="Edit"
-                      disabled={bulkTransferring}
-                    >✏️</button>
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={() => handleDelete(b.id)}
-                      title="Delete"
-                      style={{ color: 'var(--danger)' }}
-                      disabled={bulkTransferring}
-                    >🗑️</button>
-                  </div>
-                </td>
+                {visibleCols.bugNo       && <td className="bug-number">{b.bug_number || '—'}</td>}
+                {visibleCols.title       && <td className="bug-title">{b.title}</td>}
+                {visibleCols.severity    && <td><span className={severityBadgeClass(b.severity)}>{b.severity}</span></td>}
+                {visibleCols.priority    && <td>{b.priority}</td>}
+                {visibleCols.status      && <td><span className={statusBadgeClass(b.status)}>{b.status}</span></td>}
+                {visibleCols.planeStatus && (
+                  <td onClick={e => e.stopPropagation()}>
+                    <PlaneStatusBadge bug={b} />
+                  </td>
+                )}
+                {visibleCols.tipe        && <td><BugCategoryBadge bug={b} /></td>}
+                {visibleCols.reporter    && <td className="bug-reporter">{b.reporter || '—'}</td>}
+                {visibleCols.assignee    && <td className="bug-reporter">{b.assignee || '—'}</td>}
+                {visibleCols.module      && <td className="bug-module">{b.module || '—'}</td>}
+                {visibleCols.environment && <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.environment || '—'}</td>}
+                {visibleCols.created     && <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(b.created_at)}</td>}
+                {visibleCols.actions     && (
+                  <td onClick={e => e.stopPropagation()}>
+                    <div className="bug-actions">
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleTransferSingle(b.id)}
+                        title={b.plane_issue_id ? 'Transfer ulang ke Plane' : 'Transfer ke Plane'}
+                        disabled={transferringIds.includes(b.id) || bulkTransferring}
+                      >
+                        {transferringIds.includes(b.id) ? '⏳' : '✈️'}
+                      </button>
+                      {role !== 'viewer' && (
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => { setEditingBug(b); setShowModal(true); }}
+                        title="Edit"
+                        disabled={bulkTransferring}
+                      >✏️</button>
+                      )}
+                      {role === 'admin' && (
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleDelete(b.id)}
+                        title="Delete"
+                        style={{ color: 'var(--danger)' }}
+                        disabled={bulkTransferring}
+                      >🗑️</button>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -997,16 +1205,16 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           onSaved={handlePlaneSettingsSaved}
         />
       )}
-      {assigneeModalState && (
-        <AssigneeEmailModal
-          onConfirm={(email) => {
-            const resolve = assigneeModalState.resolve;
-            setAssigneeModalState(null);
-            resolve(email);
+      {planeTransferModalState && (
+        <PlaneTransferModal
+          onConfirm={(data) => {
+            const resolve = planeTransferModalState.resolve;
+            setPlaneTransferModalState(null);
+            resolve(data);
           }}
           onCancel={() => {
-            const resolve = assigneeModalState.resolve;
-            setAssigneeModalState(null);
+            const resolve = planeTransferModalState.resolve;
+            setPlaneTransferModalState(null);
             resolve(null);
           }}
         />

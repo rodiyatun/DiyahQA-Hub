@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Database, Play, Download, Trash2, CheckCircle, XCircle, Search, Save, History, RefreshCw, Layers } from 'lucide-react';
 import { SCHEMAS } from './sqlSchemas';
 import { SEED_SQL } from './sqlSeedData';
 import { CHALLENGES } from './sqlChallenges';
+import TutorialPanel from '../TutorialPanel';
+import { isWeb } from '../../utils/platform';
 import './SQLLab.css';
 
 // ─── SQL execution using sql.js in renderer via IPC ──────────────────────────
@@ -360,6 +363,19 @@ export default function SQLLabPage() {
       return JSON.parse(localStorage.getItem('sqllab_progress') || '{"solved":[],"history":[]}');
     } catch { return { solved: [], history: [] }; }
   });
+
+  if (isWeb()) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-primary)' }}>
+        <Database size={48} style={{ color: 'var(--text-muted)', marginBottom: 20 }} />
+        <h2>Fitur Eksklusif Desktop</h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: 500, margin: '16px auto', lineHeight: '1.6' }}>
+          SQL Lab menggunakan database SQLite lokal untuk latihan query tanpa perlu *setup* server database sungguhan.
+          Karena keterbatasan *file system* pada Web Browser, fitur ini <strong>hanya tersedia di DiyahQA Hub versi Desktop</strong>.
+        </p>
+      </div>
+    );
+  }
 
   const saveProgress = (p) => {
     setProgress(p);

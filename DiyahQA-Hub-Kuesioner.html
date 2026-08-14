@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuesioner DiyahQA Hub</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .hero { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 48px 24px; text-align: center; border-bottom: 1px solid #1e40af; }
+  .hero h1 { font-size: 2rem; font-weight: 700; color: #60a5fa; margin-bottom: 8px; }
+  .hero p { color: #94a3b8; font-size: 1rem; }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
+  .role-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .role-btn { background: #1e293b; border: 2px solid #334155; color: #94a3b8; padding: 14px 10px; border-radius: 12px; cursor: pointer; font-size: 0.85rem; text-align: center; transition: all 0.2s; }
+  .role-btn:hover { border-color: #60a5fa; color: #60a5fa; }
+  .role-btn.active { background: #1e40af; border-color: #60a5fa; color: #fff; font-weight: 600; }
+  .role-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 6px; }
+  .progress-bar { background: #1e293b; border-radius: 99px; height: 6px; margin-bottom: 32px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, #1d4ed8, #60a5fa); height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .form-section { background: #1e293b; border-radius: 16px; padding: 28px; margin-bottom: 24px; border: 1px solid #334155; }
+  .form-section h2 { font-size: 1.15rem; color: #60a5fa; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #334155; }
+  .section-label { font-size: 0.78rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 14px; }
+  .highlight-section { background: #0c1f3a; border-left: 3px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 14px; margin-bottom: 20px; }
+  .highlight-section .section-label { color: #f59e0b; margin: 0 0 12px; }
+  .question { margin-bottom: 20px; }
+  .question > label { display: block; font-size: 0.92rem; color: #cbd5e1; margin-bottom: 10px; line-height: 1.6; }
+  .question > label span.num { color: #60a5fa; font-weight: 700; margin-right: 6px; }
+  .rating-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .rating-group input[type=radio] { display: none; }
+  .rating-group label { background: #0f172a; border: 2px solid #334155; color: #64748b; width: 46px; height: 46px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; font-size: 1rem; transition: all 0.15s; margin: 0; }
+  .rating-group input[type=radio]:checked + label { background: #1e40af; border-color: #60a5fa; color: #fff; transform: scale(1.1); }
+  .rating-group label:hover { border-color: #60a5fa; color: #60a5fa; }
+  .rating-hint { display: flex; justify-content: space-between; font-size: 0.72rem; color: #475569; margin-top: 6px; max-width: 280px; }
+  textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 12px; font-size: 0.9rem; resize: vertical; min-height: 90px; font-family: inherit; margin-top: 8px; transition: border 0.2s; }
+  textarea:focus { outline: none; border-color: #60a5fa; }
+  input[type=text], input[type=email] { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 11px 14px; font-size: 0.9rem; font-family: inherit; margin-top: 6px; transition: border 0.2s; }
+  input[type=text]:focus, input[type=email]:focus { outline: none; border-color: #60a5fa; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 600px) { .form-row { grid-template-columns: 1fr; } .hero h1 { font-size: 1.5rem; } }
+  .btn-submit { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff; border: none; padding: 15px 32px; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 12px; transition: all 0.2s; letter-spacing: 0.5px; }
+  .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .success-msg { display: none; background: #064e3b; border: 1px solid #10b981; color: #34d399; border-radius: 12px; padding: 24px; text-align: center; margin-top: 16px; font-size: 1rem; line-height: 1.7; }
+  .info-box { background: #0c1f3a; border: 1px solid #1e40af; border-radius: 10px; padding: 16px; margin-bottom: 28px; font-size: 0.88rem; color: #93c5fd; line-height: 1.6; }
+  .info-box strong { color: #60a5fa; }
+  .welcome { text-align: center; padding: 48px 20px; color: #64748b; }
+  .welcome .big-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .welcome p { font-size: 0.95rem; line-height: 1.8; max-width: 480px; margin: 0 auto; }
+  .email-note { font-size: 0.8rem; color: #64748b; text-align: center; margin-top: 10px; }
+  .badge { display: inline-block; background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b44; border-radius: 99px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>📋 Kuesioner Evaluasi DiyahQA Hub</h1>
+  <p>Pilih role kamu di bawah untuk mengisi kuesioner yang sesuai · Semua jawaban bersifat anonim</p>
+</div>
+
+<div class="container">
+
+  <div class="info-box">
+    💡 <strong>Cara penggunaan:</strong> Pilih role → isi semua pertanyaan rating → klik "Kirim Jawaban". Hasil akan otomatis dikirim ke email tim DiyahQA Hub dan kamu bisa download salinannya.
+  </div>
+
+  <div class="role-selector" id="roleSelector">
+    <button class="role-btn" onclick="selectRole('qa', this)"><span class="icon">👩‍💻</span>QA Engineer</button>
+    <button class="role-btn" onclick="selectRole('devops', this)"><span class="icon">🤖</span>DevOps</button>
+    <button class="role-btn" onclick="selectRole('backend', this)"><span class="icon">🖥️</span>Backend Dev</button>
+    <button class="role-btn" onclick="selectRole('frontend', this)"><span class="icon">🎨</span>Frontend Dev</button>
+    <button class="role-btn" onclick="selectRole('head', this)"><span class="icon">👔</span>Head of Tech / CEO</button>
+    <button class="role-btn" onclick="selectRole('product', this)"><span class="icon">📦</span>Product Manager</button>
+    <button class="role-btn" onclick="selectRole('implementor', this)"><span class="icon">🛠️</span>Implementor</button>
+    <button class="role-btn" onclick="selectRole('cs', this)"><span class="icon">🤝</span>Customer Success <span class="badge">Fokus</span></button>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div id="welcomeMsg" class="welcome">
+    <div class="big-icon">👆</div>
+    <p>Pilih role kamu di atas untuk memulai kuesioner.<br>Jawaban kamu sangat membantu pengembangan DiyahQA Hub.</p>
+  </div>
+
+  <div id="formContent"></div>
+</div>
+
+<script>
+// =====================================================
+// GANTI dengan URL Google Apps Script kamu
+// Cara: Google Sheets → Extensions → Apps Script
+// → paste google-apps-script.js → Deploy → Web App
+// → Anyone → copy URL dan paste di bawah
+// =====================================================
+const FORMSPREE_URL = 'https://script.google.com/macros/s/AKfycbyDVteiSivtg8dyyj7DVI2eA1JSOgwVVSbsem2o_nD2D_YWPLpqKT2cWeViDB-TYXHfMg/exec';
+
+const roles = {
+  qa: {
+    title: '👩‍💻 QA Engineer',
+    sections: [
+      { label: 'Identitas', fields: [
+        { type:'text', id:'qa_nama', label:'Nama (opsional)' },
+        { type:'text', id:'qa_exp', label:'Lama pengalaman sebagai QA' }
+      ]},
+      { label: 'Test Case Management', fields: [
+        { type:'rating', id:'qa_1', label:'Fitur buat dan edit test case mudah digunakan.' },
+        { type:'rating', id:'qa_2', label:'Filter dan pencarian test case membantu saya menemukan TC dengan cepat.' },
+        { type:'rating', id:'qa_3', label:'Export/import CSV dan Allure JSON sesuai kebutuhan saya.' },
+        { type:'rating', id:'qa_4', label:'AI Generate TC menghasilkan test case yang relevan dan bisa langsung dipakai.' },
+        { type:'rating', id:'qa_5', label:'Fitur Generate Playwright dari TC manual menghemat waktu saya.' }
+      ]},
+      { label: 'Bug Report', fields: [
+        { type:'rating', id:'qa_6', label:'Form bug report sudah mencakup semua informasi yang saya butuhkan.' },
+        { type:'rating', id:'qa_7', label:'Auto-klasifikasi FE/BE/CI-CD akurat sesuai bug yang saya input.' },
+        { type:'rating', id:'qa_8', label:'Integrasi transfer bug ke Plane berjalan lancar.' }
+      ]},
+      { label: 'API Lab', fields: [
+        { type:'rating', id:'qa_9', label:'API Lab cukup sebagai pengganti Postman untuk testing harian saya.' },
+        { type:'rating', id:'qa_10', label:'Import Postman Collection berjalan tanpa masalah.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'qa_t1', label:'Fitur apa yang paling sering kamu gunakan?' },
+        { type:'textarea', id:'qa_t2', label:'Fitur apa yang menurutmu masih kurang atau perlu diperbaiki?' },
+        { type:'textarea', id:'qa_t3', label:'Apakah ada workflow testing yang belum bisa dilakukan di DiyahQA Hub?' }
+      ]}
+    ]
+  },
+  devops: {
+    title: '🤖 DevOps',
+    sections: [
+      { label: 'Identitas', fields: [{ type:'text', id:'do_nama', label:'Nama (opsional)' }]},
+      { label: 'CI/CD Lab', fields: [
+        { type:'rating', id:'do_1', label:'Pipeline builder memudahkan saya membuat konfigurasi GitHub Actions/GitLab CI.' },
+        { type:'rating', id:'do_2', label:'Pipeline simulator membantu saya memvalidasi pipeline sebelum push ke repo.' },
+        { type:'rating', id:'do_3', label:'YAML validator mendeteksi kesalahan konfigurasi dengan akurat.' },
+        { type:'rating', id:'do_4', label:'Deployment Readiness Gate membantu memastikan environment siap sebelum deploy.' },
+        { type:'rating', id:'do_5', label:'Fitur Trigger Pipeline (GitHub Actions, GitLab, Jenkins) berfungsi sesuai ekspektasi.' }
+      ]},
+      { label: 'Environment Manager', fields: [
+        { type:'rating', id:'do_6', label:'Environment Manager memudahkan pengelolaan variabel per environment.' },
+        { type:'rating', id:'do_7', label:'Enkripsi AES-256 membuat saya merasa aman menyimpan data sensitif.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'do_t1', label:'Apakah ada integrasi CI/CD tools lain yang kamu butuhkan?' },
+        { type:'textarea', id:'do_t2', label:'Bagaimana pendapatmu tentang keamanan data credentials di DiyahQA Hub?' },
+        { type:'textarea', id:'do_t3', label:'Fitur apa yang paling membantu workflow DevOps kamu?' }
+      ]}
+    ]
+  },
+  backend: {
+    title: '🖥️ Backend Developer',
+    sections: [
+      { label: 'Identitas', fields: [{ type:'text', id:'be_nama', label:'Nama (opsional)' }]},
+      { label: 'API Lab', fields: [
+        { type:'rating', id:'be_1', label:'API Lab memudahkan saya testing endpoint yang baru saya buat.' },
+        { type:'rating', id:'be_2', label:'Assertion builder (status code, JSON path, header, duration) sudah cukup lengkap.' },
+        { type:'rating', id:'be_3', label:'Environment variables dengan placeholder {{variable}} memudahkan testing multi-environment.' },
+        { type:'rating', id:'be_4', label:'OpenAPI/Swagger importer bekerja dengan baik.' }
+      ]},
+      { label: 'Bug Report', fields: [
+        { type:'rating', id:'be_5', label:'Saya bisa dengan mudah melihat bug yang diklasifikasikan sebagai Backend.' },
+        { type:'rating', id:'be_6', label:'Informasi bug report sudah cukup detail untuk saya reproduce dan fix.' }
+      ]},
+      { label: 'SQL Lab', fields: [
+        { type:'rating', id:'be_7', label:'SQL Lab membantu saya latihan atau verifikasi query yang dipakai di sistem.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'be_t1', label:'Apakah ada format API testing yang kamu butuhkan tapi belum tersedia?' },
+        { type:'textarea', id:'be_t2', label:'Informasi apa yang masih kurang di bug report yang kamu terima?' }
+      ]}
+    ]
+  },
+  frontend: {
+    title: '🎨 Frontend Developer',
+    sections: [
+      { label: 'Identitas', fields: [{ type:'text', id:'fe_nama', label:'Nama (opsional)' }]},
+      { label: 'Bug Report', fields: [
+        { type:'rating', id:'fe_1', label:'Klasifikasi bug Frontend sudah akurat dan memudahkan saya menemukan bug yang relevan.' },
+        { type:'rating', id:'fe_2', label:'Detail bug report (langkah reproduksi, severity) sudah cukup untuk saya perbaiki.' }
+      ]},
+      { label: 'Automation Lab', fields: [
+        { type:'rating', id:'fe_3', label:'Script Playwright yang di-generate dari TC manual sudah cukup akurat.' },
+        { type:'rating', id:'fe_4', label:'Locator Inspector membantu saya menemukan selector yang tepat.' },
+        { type:'rating', id:'fe_5', label:'Allure Report di Automation Lab memudahkan saya melihat hasil test.' }
+      ]},
+      { label: 'Security Lab', fields: [
+        { type:'rating', id:'fe_6', label:'Materi OWASP Top 10 dan simulator XSS/SQL Injection membantu saya menulis kode yang lebih aman.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'fe_t1', label:'Apakah ada jenis bug yang sering kamu terima tapi informasinya tidak cukup?' },
+        { type:'textarea', id:'fe_t2', label:'Fitur apa yang paling membantu kamu sebagai Frontend Developer?' }
+      ]}
+    ]
+  },
+  head: {
+    title: '👔 Head of Technology / CEO',
+    sections: [
+      { label: 'Identitas', fields: [
+        { type:'text', id:'hd_nama', label:'Nama (opsional)' },
+        { type:'text', id:'hd_role', label:'Role' }
+      ]},
+      { label: 'Visibilitas & Produktivitas Tim', fields: [
+        { type:'rating', id:'hd_1', label:'DiyahQA Hub memberikan visibilitas yang cukup terhadap kualitas produk secara keseluruhan.' },
+        { type:'rating', id:'hd_2', label:'Tool ini meningkatkan produktivitas tim QA secara nyata.' },
+        { type:'rating', id:'hd_3', label:'Integrasi dengan Plane memudahkan tracking bug dan progress secara real-time.' },
+        { type:'rating', id:'hd_4', label:'DiyahQA Hub mengurangi ketergantungan pada tools berbayar eksternal.' }
+      ]},
+      { label: 'Keamanan & Keandalan', fields: [
+        { type:'rating', id:'hd_5', label:'Penyimpanan data lokal dan enkripsi AES-256 sudah memenuhi standar keamanan perusahaan.' },
+        { type:'rating', id:'hd_6', label:'Saya merasa nyaman tim menggunakan tool ini untuk data testing yang sensitif.' }
+      ]},
+      { label: 'Nilai Bisnis', fields: [
+        { type:'rating', id:'hd_7', label:'Secara keseluruhan, DiyahQA Hub layak digunakan sebagai tool standar tim.' },
+        { type:'rating', id:'hd_8', label:'Saya akan merekomendasikan DiyahQA Hub ke tim atau perusahaan lain.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'hd_t1', label:'Dari sudut pandang manajemen, fitur apa yang paling bernilai di DiyahQA Hub?' },
+        { type:'textarea', id:'hd_t2', label:'Apakah ada fitur reporting atau dashboard yang kamu butuhkan untuk monitoring tim?' },
+        { type:'textarea', id:'hd_t3', label:'Hambatan apa yang mungkin mencegah adopsi penuh tool ini di tim?' }
+      ]}
+    ]
+  },
+  product: {
+    title: '📦 Product Manager / Product Owner',
+    sections: [
+      { label: 'Identitas', fields: [
+        { type:'text', id:'pm_nama', label:'Nama (opsional)' },
+        { type:'text', id:'pm_exp', label:'Lama pengalaman sebagai Product' }
+      ]},
+      { label: 'Requirements & Traceability', fields: [
+        { type:'rating', id:'pm_1', label:'Fitur Requirements Page memudahkan saya mendokumentasikan kebutuhan produk.' },
+        { type:'rating', id:'pm_2', label:'Traceability matrix (Requirement → Test Case) membantu saya memastikan semua requirement ter-cover.' },
+        { type:'rating', id:'pm_3', label:'Saya bisa dengan mudah melihat status testing per requirement/fitur.' },
+        { type:'rating', id:'pm_4', label:'Fitur Design & PRD Panel memudahkan saya menyimpan dan berbagi dokumen desain dengan tim.' }
+      ]},
+      { label: 'Kolaborasi dengan QA', fields: [
+        { type:'rating', id:'pm_5', label:'DiyahQA Hub memudahkan komunikasi antara Product dan QA terkait scope testing.' },
+        { type:'rating', id:'pm_6', label:'Bug report yang masuk sudah cukup terstruktur untuk saya prioritaskan di backlog.' },
+        { type:'rating', id:'pm_7', label:'Integrasi dengan Plane memudahkan saya tracking bug dan task dalam satu tempat.' }
+      ]},
+      { label: 'Visibilitas Produk', fields: [
+        { type:'rating', id:'pm_8', label:'Saya bisa mendapatkan gambaran kualitas produk tanpa harus tanya langsung ke QA.' },
+        { type:'rating', id:'pm_9', label:'Test Plan yang dibuat QA mudah saya baca dan pahami.' },
+        { type:'rating', id:'pm_10', label:'Notifikasi Google Chat saat bug ditransfer membantu saya stay updated.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'pm_t1', label:'Informasi apa yang paling kamu butuhkan sebagai Product tapi belum tersedia di DiyahQA Hub?' },
+        { type:'textarea', id:'pm_t2', label:'Apakah ada fitur pelaporan (report/dashboard) yang penting untuk ditambahkan?' },
+        { type:'textarea', id:'pm_t3', label:'Bagaimana DiyahQA Hub mengubah cara kamu berkolaborasi dengan tim QA?' }
+      ]}
+    ]
+  },
+  implementor: {
+    title: '🛠️ Implementor / Technical Support',
+    sections: [
+      { label: 'Identitas', fields: [
+        { type:'text', id:'im_nama', label:'Nama (opsional)' },
+        { type:'text', id:'im_role', label:'Role spesifik (Implementor / Support / On-Site)' }
+      ]},
+      { label: 'Kemudahan Instalasi & Setup', fields: [
+        { type:'rating', id:'im_1', label:'Proses instalasi DiyahQA Hub di mesin client mudah dilakukan.' },
+        { type:'rating', id:'im_2', label:'Dokumentasi instalasi (README / Manual Book) sudah cukup jelas.' },
+        { type:'rating', id:'im_3', label:'Aplikasi berjalan stabil setelah diinstall tanpa konfigurasi tambahan.' },
+        { type:'rating', id:'im_4', label:'Tidak adanya dependensi eksternal memudahkan proses setup di lapangan.' }
+      ]},
+      { label: 'Penggunaan di Lapangan', fields: [
+        { type:'rating', id:'im_5', label:'Environment Manager memudahkan saya mengkonfigurasi koneksi ke environment client.' },
+        { type:'rating', id:'im_6', label:'Deployment Readiness Gate membantu memverifikasi kesiapan sistem sebelum go-live.' },
+        { type:'rating', id:'im_7', label:'API Lab memudahkan saya melakukan smoke test setelah deployment.' },
+        { type:'rating', id:'im_8', label:'Test Case yang ada di library memudahkan saya menjalankan testing saat implementasi.' }
+      ]},
+      { label: 'Dokumentasi & Support', fields: [
+        { type:'rating', id:'im_9', label:'Manual Book yang tersedia sudah cukup lengkap untuk saya gunakan mandiri.' },
+        { type:'rating', id:'im_10', label:'Tutorial yang ada membantu saya onboarding dengan cepat tanpa pelatihan khusus.' },
+        { type:'rating', id:'im_11', label:'Jika ada masalah saat implementasi, saya tahu harus mencari solusi di mana.' }
+      ]},
+      { label: 'Pertanyaan Terbuka', fields: [
+        { type:'textarea', id:'im_t1', label:'Kendala apa yang paling sering kamu hadapi saat menggunakan DiyahQA Hub di environment client?' },
+        { type:'textarea', id:'im_t2', label:'Fitur apa yang paling membantu pekerjaanmu saat on-site di klien?' },
+        { type:'textarea', id:'im_t3', label:'Apakah ada fitur yang kamu butuhkan khusus untuk skenario deployment atau go-live?' },
+        { type:'textarea', id:'im_t4', label:'Bagaimana performa aplikasi di mesin dengan spesifikasi rendah?' }
+      ]}
+    ]
+  },
+  cs: {
+    title: '🤝 Customer Success / Account Manager',
+    sections: [
+      { label: 'Identitas', fields: [
+        { type:'text', id:'cs_nama', label:'Nama (opsional)' },
+        { type:'email', id:'cs_email', label:'Email (untuk follow-up jika diperlukan)' },
+        { type:'text', id:'cs_exp', label:'Lama pengalaman di role Customer Success' }
+      ]},
+      { label: '🔥 FOKUS UTAMA — Bug Reporting dari Klien', highlight: true, fields: [
+        { type:'rating', id:'cs_b1', label:'Saat ini saya harus melaporkan bug dari klien secara manual (chat/email/spreadsheet).' },
+        { type:'rating', id:'cs_b2', label:'Proses pelaporan bug manual yang ada saat ini memakan waktu yang signifikan.' },
+        { type:'rating', id:'cs_b3', label:'Sering terjadi kehilangan informasi penting saat bug diteruskan dari klien ke tim dev.' },
+        { type:'rating', id:'cs_b4', label:'Saya kesulitan melacak status bug yang sudah saya laporkan ke tim teknis.' },
+        { type:'rating', id:'cs_b5', label:'Fitur Bug Report di DiyahQA Hub bisa menggantikan cara manual saya saat ini.' },
+        { type:'rating', id:'cs_b6', label:'Form bug report di DiyahQA Hub sudah mencakup semua informasi yang biasa saya kumpulkan dari klien.' },
+        { type:'rating', id:'cs_b7', label:'Fitur auto-klasifikasi (FE/BE/CI-CD) membantu saya meneruskan bug ke tim yang tepat tanpa harus tanya dulu.' },
+        { type:'rating', id:'cs_b8', label:'Transfer bug langsung ke Plane menghemat langkah-langkah manual yang biasa saya lakukan.' },
+        { type:'rating', id:'cs_b9', label:'Notifikasi Google Chat saat bug ditransfer membuat saya tidak perlu mengingatkan tim secara manual.' },
+        { type:'rating', id:'cs_b10', label:'Saya percaya klien bisa menggunakan fitur Bug Report ini secara mandiri dengan sedikit panduan dari saya.' }
+      ]},
+      { label: 'Pemahaman & Onboarding', fields: [
+        { type:'rating', id:'cs_1', label:'Saya memahami fitur-fitur utama DiyahQA Hub cukup baik untuk menjelaskannya ke klien.' },
+        { type:'rating', id:'cs_2', label:'Saya bisa melakukan demo DiyahQA Hub ke klien tanpa bantuan teknis dari tim dev.' },
+        { type:'rating', id:'cs_3', label:'Waktu onboarding klien ke DiyahQA Hub tergolong singkat.' }
+      ]},
+      { label: 'Nilai untuk Klien', fields: [
+        { type:'rating', id:'cs_4', label:'DiyahQA Hub membantu klien mengelola kualitas software mereka lebih terstruktur.' },
+        { type:'rating', id:'cs_5', label:'Fitur offline (tanpa internet) menjadi nilai jual yang relevan untuk klien saya.' },
+        { type:'rating', id:'cs_6', label:'DiyahQA Hub mengurangi kebutuhan klien terhadap tools QA berbayar lainnya.' }
+      ]},
+      { label: 'Penanganan Keluhan & Support', fields: [
+        { type:'rating', id:'cs_7', label:'Saya bisa menangani pertanyaan atau keluhan klien tentang DiyahQA Hub secara mandiri.' },
+        { type:'rating', id:'cs_8', label:'Ketika klien mengalami masalah, saya tahu harus mengeskalasi ke siapa.' }
+      ]},
+      { label: 'Retensi & Kepuasan Klien', fields: [
+        { type:'rating', id:'cs_9', label:'Klien yang sudah mencoba DiyahQA Hub cenderung melanjutkan penggunaannya.' },
+        { type:'rating', id:'cs_10', label:'Saya percaya diri merekomendasikan DiyahQA Hub ke klien baru.' }
+      ]},
+      { label: 'Pertanyaan Terbuka — Bug Reporting', fields: [
+        { type:'textarea', id:'cs_t1', label:'Ceritakan proses kamu saat ini ketika menerima laporan bug dari klien sampai bug tersebut ditangani tim teknis. Berapa langkah dan berapa lama biasanya?' },
+        { type:'textarea', id:'cs_t2', label:'Informasi apa yang sering hilang atau tidak lengkap saat kamu meneruskan bug dari klien ke tim dev?' },
+        { type:'textarea', id:'cs_t3', label:'Apakah klien kamu bisa menggunakan DiyahQA Hub sendiri untuk input bug, atau kamu yang input atas nama mereka? Mengapa?' },
+        { type:'textarea', id:'cs_t4', label:'Fitur tambahan apa yang kamu butuhkan di Bug Report agar workflow kamu jauh lebih mudah?' }
+      ]},
+      { label: 'Pertanyaan Terbuka — Umum', fields: [
+        { type:'textarea', id:'cs_t5', label:'Pertanyaan atau keberatan apa yang paling sering muncul dari klien saat kamu demo DiyahQA Hub?' },
+        { type:'textarea', id:'cs_t6', label:'Materi pendukung apa yang kamu butuhkan (panduan, video, FAQ) untuk memudahkan onboarding klien?' },
+        { type:'textarea', id:'cs_t7', label:'Segmen klien mana yang paling cocok dengan DiyahQA Hub saat ini?' }
+      ]}
+    ]
+  }
+};
+
+let currentRole = null;
+
+function selectRole(role, btn) {
+  currentRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('welcomeMsg').style.display = 'none';
+  renderForm(role);
+  const order = ['qa','devops','backend','frontend','head','product','implementor','cs'];
+  const pct = Math.round(((order.indexOf(role) + 1) / order.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function renderForm(role) {
+  const data = roles[role];
+  let html = `<div class="form-section"><h2>${data.title}</h2>`;
+  let qNum = 1;
+
+  data.sections.forEach(section => {
+    if (section.highlight) {
+      html += `<div class="highlight-section"><div class="section-label">⚠️ ${section.label}</div>`;
+      section.fields.forEach(f => { html += renderField(f, qNum); if(f.type==='rating'||f.type==='textarea') qNum++; });
+      html += `</div>`;
+    } else {
+      html += `<div class="section-label">${section.label}</div>`;
+      section.fields.forEach(f => { html += renderField(f, qNum); if(f.type==='rating'||f.type==='textarea') qNum++; });
+    }
+  });
+
+  html += `
+    <div style="margin-top:28px; padding-top:20px; border-top:1px solid #334155;">
+      <div class="question"><label>📧 Email kamu (opsional — untuk dapat konfirmasi)</label>
+        <input type="email" id="respondent_email" placeholder="nama@email.com"></div>
+    </div>
+    <button class="btn-submit" onclick="submitForm()" id="btnSubmit">✅ Kirim Jawaban</button>
+    <p class="email-note">Jawaban akan dikirim ke tim DiyahQA Hub · Kamu juga bisa download salinannya</p>
+    <div class="success-msg" id="successMsg">
+      🎉 <strong>Terima kasih!</strong> Jawaban kamu sudah berhasil dikirim ke tim DiyahQA Hub.<br>
+      Salinan jawaban sudah ter-download di perangkat kamu.<br>
+      <span style="font-size:0.85rem; color:#6ee7b7;">Feedback kamu sangat berarti untuk pengembangan DiyahQA Hub! 🙏</span>
+    </div>
+  </div>`;
+
+  document.getElementById('formContent').innerHTML = html;
+  window.scrollTo({ top: 220, behavior: 'smooth' });
+}
+
+function renderField(field, qNum) {
+  if (field.type === 'text') {
+    return `<div class="question"><label>${field.label}</label><input type="text" id="${field.id}" placeholder="Ketik di sini..."></div>`;
+  } else if (field.type === 'email') {
+    return `<div class="question"><label>${field.label}</label><input type="email" id="${field.id}" placeholder="nama@email.com"></div>`;
+  } else if (field.type === 'rating') {
+    let html = `<div class="question"><label><span class="num">${qNum}.</span>${field.label}</label><div class="rating-group">`;
+    for (let i = 1; i <= 5; i++) {
+      html += `<input type="radio" name="${field.id}" id="${field.id}_${i}" value="${i}"><label for="${field.id}_${i}">${i}</label>`;
+    }
+    html += `</div><div class="rating-hint"><span>1 = Sangat Tidak Setuju</span><span>5 = Sangat Setuju</span></div></div>`;
+    return html;
+  } else if (field.type === 'textarea') {
+    return `<div class="question"><label><span class="num">${qNum}.</span>${field.label}</label><textarea id="${field.id}" placeholder="Tulis jawabanmu di sini..."></textarea></div>`;
+  }
+  return '';
+}
+
+async function submitForm() {
+  if (!currentRole) return;
+  const data = roles[currentRole];
+  let unanswered = 0;
+  const formData = { role: data.title, waktu: new Date().toLocaleString('id-ID') };
+
+  data.sections.forEach(section => {
+    section.fields.forEach(field => {
+      if (field.type === 'rating') {
+        const checked = document.querySelector(`input[name="${field.id}"]:checked`);
+        if (!checked) unanswered++;
+        else formData[field.id] = checked.value + '/5 — ' + field.label;
+      } else if (field.type === 'textarea' || field.type === 'text' || field.type === 'email') {
+        formData[field.id] = document.getElementById(field.id)?.value || '';
+      }
+    });
+  });
+
+  const extraEmail = document.getElementById('respondent_email')?.value || '';
+  if (extraEmail) formData['email_responden'] = extraEmail;
+
+  if (unanswered > 0) {
+    alert(`⚠️ Masih ada ${unanswered} pertanyaan rating yang belum dijawab.\nSilakan lengkapi semua pertanyaan bernomor terlebih dahulu.`);
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengirim...';
+
+  // Download salinan lokal
+  let txt = `=== KUESIONER DIYAHQA HUB ===\nRole: ${data.title}\nWaktu: ${formData.waktu}\n\n`;
+  data.sections.forEach(s => {
+    txt += `--- ${s.label} ---\n`;
+    s.fields.forEach(f => {
+      const val = formData[f.id] || '-';
+      txt += `${f.label}:\n${val}\n\n`;
+    });
+  });
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `kuesioner-diyahqa-${currentRole}-${Date.now()}.txt`;
+  a.click(); URL.revokeObjectURL(url);
+
+  // Kirim ke Google Apps Script → Google Sheets
+  try {
+    const res = await fetch(FORMSPREE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+      mode: 'no-cors' // Google Apps Script perlu no-cors
+    });
+    // no-cors tidak return response body, tapi kalau tidak error berarti sukses
+    document.getElementById('successMsg').style.display = 'block';
+    document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth' });
+    btn.textContent = '✅ Terkirim!';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✅ Kirim Jawaban';
+    document.getElementById('successMsg').style.display = 'block';
+    document.getElementById('successMsg').innerHTML = '📥 <strong>Salinan jawaban sudah ter-download!</strong><br>Koneksi internet tidak tersedia — silakan kirim file .txt ke tim DiyahQA Hub.';
+    document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+</script>
+</body>
+</html>

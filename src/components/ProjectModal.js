@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 
 export default function ProjectModal({ project, onSave, onClose }) {
   const [name, setName] = useState('');
@@ -22,7 +23,7 @@ export default function ProjectModal({ project, onSave, onClose }) {
       <div className="modal" style={{ maxWidth: 480 }}>
         <div className="modal-header">
           <h2 className="modal-title">{project ? 'Edit Project' : 'Buat Project Baru'}</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>

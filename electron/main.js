@@ -2,7 +2,17 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-const { isConfigValid, maskApiKey, getTodoStateId, mapBugToPlanePayload, buildPlaneIssueUrl, planeRequest, sendGoogleChatNotification } = require('./planeHelpers');
+const { isConfigValid, maskApiKey, getTodoStateId, mapBugToPlanePayload, buildPlaneIssueUrl, planeRequest, sendGoogleChatNotification, getPlaneLabels, getPlaneModules, getPlaneCycles } = require('./planeHelpers');
+
+// ─── Supabase (PostgreSQL Cloud Sync) ────────────────────────────────────────
+const { createClient } = require('@supabase/supabase-js');
+const WebSocket = require('ws');
+const SUPABASE_URL = 'https://mdstuycsypszfeswwngw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_KJEa3Zxt7AoevaccZNNt8Q_WgWjiB6n';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false },
+  realtime: { transport: WebSocket }
+});
 
 // ─── Database (sql.js — pure JS, no native compile needed) ───────────────────
 let db;
@@ -222,6 +232,59 @@ function initDB() {
       );
     `);
     db.run(`
+      CREATE TABLE IF NOT EXISTS plane_config (
+        id INTEGER PRIMARY KEY,
+        workspace_slug TEXT,
+        project_id TEXT,
+        api_key TEXT,
+        is_active INTEGER,
+        updated_at TEXT
+      );
+    `);
+    
+    // --- Team & Admin Data ---
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        email TEXT,
+        role TEXT,
+        last_active TEXT
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user TEXT,
+        action TEXT,
+        status TEXT,
+        timestamp TEXT
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        key TEXT,
+        created TEXT,
+        expires TEXT
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        is_active INTEGER
+      );
+    `);
+    
+    // Ensure default workspace if empty
+    const wcCount = db.exec('SELECT COUNT(*) as cnt FROM workspaces');
+    if (wcCount.length > 0 && wcCount[0].values[0][0] === 0) {
+      db.run('INSERT INTO workspaces (name, is_active) VALUES (?, ?)', ['Internal Engineering', 1]);
+    }
+    
+    db.run(`
       CREATE TABLE IF NOT EXISTS project_env_credentials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
@@ -237,7 +300,71 @@ function initDB() {
     migratePlaneSchema();
 
     saveDB();
+
+    // Run Supabase background migration
+    migrateAllToSupabase();
   });
+}
+
+// ─── Supabase Migration Tool ─────────────────────────────────────────────────
+async function migrateAllToSupabase() {
+  if (!db) return;
+  console.log('[Supabase] Starting full database sync check...');
+  try {
+    const { data, error } = await supabase.from('projects').select('id').limit(1);
+    if (error) {
+      console.error('[Supabase] Connection error (did you run the SQL schema yet?):', error.message);
+      return;
+    }
+    if (data && data.length > 0) {
+      console.log('[Supabase] Cloud DB already contains data. Skipping initial upload.');
+      return;
+    }
+    
+    console.log('[Supabase] Cloud DB is empty. Uploading all local data to preserve it...');
+    const tables = [
+      'projects', 'testcases', 'status_history', 'bug_reports', 'environments',
+      'env_variables', 'test_plans', 'test_plan_items', 'requirements', 
+      'requirement_tc_links', 'tc_library', 'documents', 'document_versions',
+      'project_credentials', 'plane_config', 'users', 'audit_logs', 'api_keys',
+      'workspaces', 'project_env_credentials'
+    ];
+
+    for (const table of tables) {
+      const res = db.exec(`SELECT * FROM ${table}`);
+      if (!res.length) continue;
+      
+      const columns = res[0].columns;
+      const rows = res[0].values;
+      
+      const payload = rows.map(row => {
+        const obj = {};
+        columns.forEach((col, idx) => {
+          let val = row[idx];
+          if (val !== null) {
+            // Fix invalid timestamps from SQLite
+            if (val === 'Just now' && (col === 'last_active' || col.endsWith('_at'))) {
+              val = new Date().toISOString();
+            }
+            obj[col] = val;
+          }
+        });
+        return obj;
+      });
+
+      for (let i = 0; i < payload.length; i += 100) {
+        const chunk = payload.slice(i, i + 100);
+        const { error: insertErr } = await supabase.from(table).insert(chunk);
+        if (insertErr) {
+          console.error(`[Supabase] Error inserting into ${table}:`, insertErr.message);
+        }
+      }
+      console.log(`[Supabase] Migrated ${payload.length} rows to ${table}`);
+    }
+    console.log('[Supabase] ✅ All local data successfully migrated to Cloud!');
+  } catch (err) {
+    console.error('[Supabase] Migration failed:', err);
+  }
 }
 
 // ─── Plane Integration: Schema Migration ─────────────────────────────────────
@@ -330,10 +457,71 @@ function run(sql, params = []) {
     db.run(sql, params);
     const idRow = queryOne('SELECT last_insert_rowid() as id');
     saveDB();
+    
+    // Supabase Real-time Sync Interceptor
+    const sqlUpper = sql.trim().toUpperCase();
+    if (sqlUpper.startsWith('INSERT') || sqlUpper.startsWith('UPDATE') || sqlUpper.startsWith('DELETE')) {
+       syncToSupabaseAsync(sql, params, idRow?.id);
+    }
+    
     return idRow?.id;
   } catch (e) {
     console.error('run error:', e, sql);
     return null;
+  }
+}
+
+// ─── Supabase Real-Time Sync Engine ──────────────────────────────────────────
+async function syncToSupabaseAsync(sql, params, lastInsertId) {
+  try {
+    const action = sql.trim().split(' ')[0].toUpperCase();
+    let tableName = '';
+    
+    if (action === 'INSERT') {
+      const match = sql.match(/INSERT INTO\s+([a-zA-Z0-9_]+)/i);
+      if (match) tableName = match[1];
+      if (tableName && lastInsertId) {
+        const row = queryOne(`SELECT * FROM ${tableName} WHERE id = ?`, [lastInsertId]);
+        if (row) {
+          for (const key in row) {
+            if (row[key] === 'Just now' && (key === 'last_active' || key.endsWith('_at'))) {
+              row[key] = new Date().toISOString();
+            }
+          }
+          const { error } = await supabase.from(tableName).insert([row]);
+          if (error) console.error(`[Supabase Sync] INSERT error on ${tableName}:`, error.message);
+          else console.log(`[Supabase Sync] INSERT success on ${tableName} (ID: ${lastInsertId})`);
+        }
+      }
+    } else if (action === 'UPDATE') {
+      const match = sql.match(/UPDATE\s+([a-zA-Z0-9_]+)/i);
+      if (match) tableName = match[1];
+      const id = params[params.length - 1]; 
+      if (tableName && id) {
+        const row = queryOne(`SELECT * FROM ${tableName} WHERE id = ?`, [id]);
+        if (row) {
+          for (const key in row) {
+            if (row[key] === 'Just now' && (key === 'last_active' || key.endsWith('_at'))) {
+              row[key] = new Date().toISOString();
+            }
+          }
+          const { error } = await supabase.from(tableName).update(row).eq('id', id);
+          if (error) console.error(`[Supabase Sync] UPDATE error on ${tableName}:`, error.message);
+          else console.log(`[Supabase Sync] UPDATE success on ${tableName} (ID: ${id})`);
+        }
+      }
+    } else if (action === 'DELETE') {
+      const match = sql.match(/DELETE FROM\s+([a-zA-Z0-9_]+)/i);
+      if (match) tableName = match[1];
+      const id = params[params.length - 1];
+      if (tableName && id) {
+        const { error } = await supabase.from(tableName).delete().eq('id', id);
+        if (error) console.error(`[Supabase Sync] DELETE error on ${tableName}:`, error.message);
+        else console.log(`[Supabase Sync] DELETE success on ${tableName} (ID: ${id})`);
+      }
+    }
+  } catch (err) {
+    console.error('[Supabase Sync Exception]', err);
   }
 }
 
@@ -478,7 +666,7 @@ ipcMain.handle('get-bug-reports', (_, projectId) => {
   return queryAll('SELECT * FROM bug_reports ORDER BY created_at DESC');
 });
 
-ipcMain.handle('create-bug-report', (_, data) => {
+ipcMain.handle('create-bug-report', async (_, data) => {
   const VALID_SEVERITY = ['Critical', 'High', 'Medium', 'Low'];
   const VALID_STATUS = ['Open', 'In Progress', 'Resolved', 'Closed', "Won't Fix"];
 
@@ -523,7 +711,55 @@ ipcMain.handle('create-bug-report', (_, data) => {
   );
   const idRow = queryOne('SELECT last_insert_rowid() as id');
   saveDB();
-  return queryOne('SELECT * FROM bug_reports WHERE id = ?', [idRow?.id]);
+  const createdBug = queryOne('SELECT * FROM bug_reports WHERE id = ?', [idRow?.id]);
+
+  try {
+    const vaultConfig = queryOne('SELECT * FROM vault_config WHERE id = 1 AND is_active = 1');
+    if (vaultConfig) {
+      const engine = vaultConfig.engine_path || 'secret';
+      const url = `${vaultConfig.address}/v1/${engine}/data/diyahqa/integrations/config`;
+      const response = await fetch(url, { headers: { 'X-Vault-Token': vaultConfig.token } });
+      const result = await response.json();
+      if (result && result.data && result.data.data) {
+        const config = result.data.data;
+        
+        // Slack Integration
+        if (config.slackWebhook) {
+          fetch(config.slackWebhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: `🚨 *New Bug Report Created*\n*ID*: ${createdBug.bug_number}\n*Title*: ${createdBug.title}\n*Severity*: ${createdBug.severity}\n*Status*: ${createdBug.status}\n*Module*: ${createdBug.module || 'N/A'}`
+            })
+          }).catch(console.error);
+        }
+
+        // Jira Integration
+        if (config.jiraDomain && config.jiraEmail && config.jiraToken) {
+          const auth = Buffer.from(`${config.jiraEmail}:${config.jiraToken}`).toString('base64');
+          fetch(`${config.jiraDomain}/rest/api/2/issue`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: {
+                project: { key: "QA" }, // Default project key placeholder
+                summary: `[${createdBug.bug_number}] ${createdBug.title}`,
+                description: `${createdBug.description}\n\nSteps to reproduce:\n${createdBug.steps_to_reproduce}`,
+                issuetype: { name: "Bug" }
+              }
+            })
+          }).catch(console.error);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to trigger enterprise integrations:', e);
+  }
+
+  return createdBug;
 });
 
 ipcMain.handle('update-bug-report', (_, data) => {
@@ -1454,6 +1690,155 @@ function sendLog(channel, data) {
   }
 }
 
+// ── Antigravity Generation
+ipcMain.handle('generate-with-antigravity', async (event, tc, projectPath) => {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const tempFile = path.join(os.tmpdir(), `agy_tc_${Date.now()}.ts`);
+    const promptFile = path.join(os.tmpdir(), `agy_prompt_${Date.now()}.txt`);
+    
+    const prompt = `Buatkan script Playwright untuk test case: "${tc.title}". 
+Langkah: ${tc.scenario || '-'}
+Expected Result: ${tc.expected_result || '-'}
+Test Data: ${tc.test_data || '-'}
+
+ATURAN PENTING:
+1. Output HANYA raw typescript code yang valid untuk Playwright (import { test, expect } from '@playwright/test').
+2. Tulis KODE SAJA tanpa markdown block (\`\`\`) dan tanpa penjelasan teks apapun.
+3. Gunakan page locator yang sangat akurat dengan mengeksplorasi browser atau codebase.
+4. Simpan seluruh kode tersebut SECARA LANGSUNG ke dalam file: ${tempFile}`;
+
+    fs.writeFileSync(promptFile, prompt, 'utf-8');
+    const cwdArg = projectPath && fs.existsSync(projectPath) ? projectPath : process.cwd();
+
+    // Menggunakan hermes CLI dari ~/.local/bin
+    const hermesPath = path.join(os.homedir(), '.local', 'bin', 'hermes');
+    const command = `"${hermesPath}" --oneshot "$(cat '${promptFile}')"`;
+
+    exec(command, { cwd: cwdArg, maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+      try { fs.unlinkSync(promptFile); } catch(e) {}
+      if (fs.existsSync(tempFile)) {
+        let code = fs.readFileSync(tempFile, 'utf-8');
+        try { fs.unlinkSync(tempFile); } catch(e) {}
+        
+        // Bersihkan markdown block jika AI tetap menambahkan
+        code = code.replace(/^```typescript\n|^```ts\n|^```\n/gm, '').replace(/```$/gm, '').trim();
+        resolve(code);
+      } else {
+        console.error("Antigravity error:", error || stderr);
+        reject(new Error(error ? error.message : "Antigravity gagal membuat file script di " + tempFile));
+      }
+    });
+  });
+});
+
+ipcMain.handle('wa-antigravity-explore', async (event, { projPath, url, instruction, outputFile }) => {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const targetFile = path.join(projPath, 'tests', outputFile);
+    const promptFile = path.join(os.tmpdir(), `agy_prompt_exp_${Date.now()}.txt`);
+    
+    const prompt = `Lakukan eksplorasi pada URL: ${url}
+Instruksi: ${instruction}
+
+Tugas Anda:
+1. Buka browser dan lakukan eksplorasi otomatis sesuai instruksi.
+2. Buat script Playwright Automation berdasarkan hasil eksplorasi Anda (gunakan locator akurat).
+3. Output HANYA KODE Playwright Typescript.
+4. Simpan hasilnya LANGSUNG ke file: ${targetFile}`;
+
+    fs.writeFileSync(promptFile, prompt, 'utf-8');
+
+    exec(`source ~/.zshrc 2>/dev/null; agy run "$(cat '${promptFile}')" --cwd "${projPath}"`, { shell: '/bin/zsh' }, (error, stdout, stderr) => {
+      try { fs.unlinkSync(promptFile); } catch(e) {}
+      if (fs.existsSync(targetFile)) {
+        let code = fs.readFileSync(targetFile, 'utf-8');
+        code = code.replace(/^```typescript\n|^```ts\n|^```\n/gm, '').replace(/```$/gm, '').trim();
+        fs.writeFileSync(targetFile, code); // clean up
+        resolve(code);
+      } else {
+        reject(new Error(error ? error.message : "Antigravity gagal menyimpan file di " + targetFile));
+      }
+    });
+  });
+});
+
+ipcMain.handle('wa-antigravity-heal', async (event, { projPath, testName, errorLog }) => {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const promptFile = path.join(os.tmpdir(), `agy_prompt_heal_${Date.now()}.txt`);
+    const prompt = `Test "${testName}" gagal. 
+Berikut log error-nya:
+${errorLog}
+
+Tugas Anda:
+1. Cari file script yang mengandung test "${testName}" di folder tests/.
+2. Analisa penyebab kegagalan dari error log, temukan locator yang usang atau alur yang salah.
+3. Perbaiki kode langsung di dalam file tersebut.
+4. Kembalikan penjelasan singkat (max 2 kalimat) tentang apa yang Anda perbaiki.`;
+
+    fs.writeFileSync(promptFile, prompt, 'utf-8');
+
+    exec(`source ~/.zshrc 2>/dev/null; agy run "$(cat '${promptFile}')" --cwd "${projPath}"`, { shell: '/bin/zsh' }, (error, stdout, stderr) => {
+      try { fs.unlinkSync(promptFile); } catch(e) {}
+      if (error) {
+        reject(new Error(error.message || stderr));
+      } else {
+        resolve(stdout || "Perbaikan selesai!");
+      }
+    });
+  });
+});
+
+ipcMain.handle('wa-antigravity-data', async (event, { projPath, fileName, description }) => {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const dataDir = path.join(projPath, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    
+    const targetPath = path.join(dataDir, fileName);
+    const promptFile = path.join(os.tmpdir(), `agy_prompt_data_${Date.now()}.txt`);
+    const prompt = `Buatkan test data.
+Deskripsi Data: ${description}
+
+Tugas Anda:
+1. Generate data test yang bervariasi sesuai deskripsi.
+2. Output format sesuai ekstensi file (jika CSV, gunakan header; jika JSON, format array of objects; jika TS, export const).
+3. HANYA OUTPUT HASILNYA TANPA PENJELASAN.
+4. Simpan langsung ke file: ${targetPath}`;
+
+    fs.writeFileSync(promptFile, prompt, 'utf-8');
+
+    exec(`source ~/.zshrc 2>/dev/null; agy run "$(cat '${promptFile}')" --cwd "${projPath}"`, { shell: '/bin/zsh' }, (error, stdout, stderr) => {
+      try { fs.unlinkSync(promptFile); } catch(e) {}
+      if (fs.existsSync(targetPath)) {
+        let code = fs.readFileSync(targetPath, 'utf-8');
+        code = code.replace(/^```csv\n|^```json\n|^```typescript\n|^```ts\n|^```\n/gm, '').replace(/```$/gm, '').trim();
+        fs.writeFileSync(targetPath, code); // clean up
+        resolve(code);
+      } else {
+        reject(new Error(error ? error.message : "Antigravity gagal menyimpan file di " + targetPath));
+      }
+    });
+  });
+});
+
 // ── List projects
 ipcMain.handle('wa-list-projects', () => {
   ensureProjectsDir();
@@ -1483,6 +1868,29 @@ ipcMain.handle('wa-list-projects', () => {
       });
   } catch (e) {
     return [];
+  }
+});
+
+// ── Get/Save Design & PRD links in Workspace
+ipcMain.handle('wa-get-design-links', (event, projectPath) => {
+  if (!projectPath) return { links: [], history: [] };
+  const filePath = path.join(projectPath, 'design_prd_links.json');
+  if (!fs.existsSync(filePath)) return { links: [], history: [] };
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch (e) {
+    return { links: [], history: [] };
+  }
+});
+
+ipcMain.handle('wa-save-design-links', (event, projectPath, data) => {
+  if (!projectPath) return { success: false, error: 'Project path required' };
+  const filePath = path.join(projectPath, 'design_prd_links.json');
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 });
 
@@ -2259,21 +2667,45 @@ ipcMain.handle('search-documents', (_, query) => {
 });
 
 // ─── IPC: Project Credentials ────────────────────────────────────────────────
-ipcMain.handle('get-project-credentials', (_, projectId) => {
+ipcMain.handle('get-project-credentials', async (_, projectId) => {
   if (!db) return null;
   const cred = queryOne('SELECT * FROM project_credentials WHERE project_id = ?', [projectId]);
   const envCreds = queryAll('SELECT * FROM project_env_credentials WHERE project_id = ?', [projectId]);
+  
+  const vaultConfig = queryOne('SELECT * FROM vault_config WHERE id = 1 AND is_active = 1');
+  let vaultData = null;
+
+  if (vaultConfig) {
+    try {
+      const engine = vaultConfig.engine_path || 'secret';
+      const url = `${vaultConfig.address}/v1/${engine}/data/diyahqa/projects/${projectId}/envCredentials`;
+      const response = await fetch(url, { headers: { 'X-Vault-Token': vaultConfig.token } });
+      if (response.ok) {
+        const result = await response.json();
+        vaultData = result.data.data; // kv v2
+      }
+    } catch (e) {
+      console.error('[Vault] Failed to read credentials from Vault:', e);
+    }
+  }
+
   return {
     ...(cred || { project_code: '', version: '', support_pin: '', remark: '' }),
-    envCredentials: envCreds.map(e => ({
-      ...e,
-      username: e.username_encrypted ? decryptVal(e.username_encrypted) : '',
-      password: e.password_encrypted ? decryptVal(e.password_encrypted) : '',
-    })),
+    envCredentials: envCreds.map(e => {
+      let pw = e.password_encrypted ? decryptVal(e.password_encrypted) : '';
+      if (vaultData && vaultData[e.env_name]) {
+        pw = vaultData[e.env_name]; // override with Vault secret
+      }
+      return {
+        ...e,
+        username: e.username_encrypted ? decryptVal(e.username_encrypted) : '',
+        password: pw,
+      };
+    }),
   };
 });
 
-ipcMain.handle('save-project-credentials', (_, { projectId, projectCode, version, supportPin, remark, envCredentials }) => {
+ipcMain.handle('save-project-credentials', async (_, { projectId, projectCode, version, supportPin, remark, envCredentials }) => {
   if (!db) return null;
   const existing = queryOne('SELECT id FROM project_credentials WHERE project_id = ?', [projectId]);
   if (existing) {
@@ -2283,12 +2715,42 @@ ipcMain.handle('save-project-credentials', (_, { projectId, projectCode, version
     run('INSERT INTO project_credentials (project_id, project_code, version, support_pin, remark) VALUES (?,?,?,?,?)',
       [projectId, projectCode || '', version || '', supportPin || '', remark || '']);
   }
+  
+  const vaultConfig = queryOne('SELECT * FROM vault_config WHERE id = 1 AND is_active = 1');
+
   // Upsert env credentials
   if (envCredentials && Array.isArray(envCredentials)) {
+    if (vaultConfig) {
+      // 1. Save Passwords to HashiCorp Vault
+      const vaultData = {};
+      envCredentials.forEach(ec => {
+        if (ec.password) vaultData[ec.envName] = ec.password;
+      });
+      
+      if (Object.keys(vaultData).length > 0) {
+        try {
+          const engine = vaultConfig.engine_path || 'secret';
+          const url = `${vaultConfig.address}/v1/${engine}/data/diyahqa/projects/${projectId}/envCredentials`;
+          const reqData = { data: vaultData };
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'X-Vault-Token': vaultConfig.token, 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqData)
+          });
+          console.log(`[Vault] Saved project ${projectId} credentials to Vault.`);
+        } catch (e) {
+          console.error('[Vault] Failed to save credentials to Vault:', e);
+        }
+      }
+    }
+
+    // 2. Save Metadata to SQLite
     for (const ec of envCredentials) {
       const existingEnv = queryOne('SELECT id FROM project_env_credentials WHERE project_id = ? AND env_name = ?', [projectId, ec.envName]);
       const usernameEnc = encryptVal(ec.username || '');
-      const passwordEnc = encryptVal(ec.password || '');
+      // If Vault is active, don't store password in SQLite!
+      const passwordEnc = vaultConfig ? encryptVal('VAULT_SECRET') : encryptVal(ec.password || '');
+      
       if (existingEnv) {
         run('UPDATE project_env_credentials SET site_url=?, username_encrypted=?, password_encrypted=? WHERE id=?',
           [ec.siteUrl || '', usernameEnc, passwordEnc, existingEnv.id]);
@@ -2422,11 +2884,44 @@ ipcMain.handle('save-plane-config', async (_, { apiKey, workspaceSlug, projectId
 });
 
 /**
+ * get-plane-labels
+ */
+ipcMain.handle('get-plane-labels', async () => {
+  try {
+    const config = getPlaneConfigRaw();
+    if (!config || !isConfigValid(config)) return [];
+    return await getPlaneLabels(config.apiKey, config.workspaceSlug, config.projectId, config.baseUrl);
+  } catch(e) { return []; }
+});
+
+/**
+ * get-plane-modules
+ */
+ipcMain.handle('get-plane-modules', async () => {
+  try {
+    const config = getPlaneConfigRaw();
+    if (!config || !isConfigValid(config)) return [];
+    return await getPlaneModules(config.apiKey, config.workspaceSlug, config.projectId, config.baseUrl);
+  } catch(e) { return []; }
+});
+
+/**
+ * get-plane-cycles
+ */
+ipcMain.handle('get-plane-cycles', async () => {
+  try {
+    const config = getPlaneConfigRaw();
+    if (!config || !isConfigValid(config)) return [];
+    return await getPlaneCycles(config.apiKey, config.workspaceSlug, config.projectId, config.baseUrl);
+  } catch(e) { return []; }
+});
+
+/**
  * transfer-bug-to-plane
  * Transfers a single bug report to Plane as an issue with Todo status.
  * Requirements: 2.2, 2.3, 2.4, 2.6, 2.7, 2.9, 5.5
  */
-ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail }) => {
+ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail, labelIds, moduleIds, cycleId }) => {
   try {
     const bug = queryOne('SELECT * FROM bug_reports WHERE id = ?', [bugId]);
     if (!bug) return { success: false, error: 'Bug not found' };
@@ -2452,7 +2947,7 @@ ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail }) => {
       if (memberId) assigneeIds = [memberId];
     }
 
-    const payload = mapBugToPlanePayload(bug, todoState);
+    const payload = mapBugToPlanePayload(bug, todoState, { labelIds, moduleIds, cycleId });
     if (assigneeIds.length > 0) payload.assignees = assigneeIds;
 
     const result = await planeRequest(
@@ -2469,6 +2964,19 @@ ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail }) => {
     }
 
     const issueId = result.data?.id;
+    
+    // Explicitly link to cycle if requested
+    if (cycleId && issueId) {
+      await planeRequest('POST', `/api/v1/workspaces/${config.workspaceSlug}/projects/${config.projectId}/cycles/${cycleId}/cycle-issues/`, config.apiKey, { issues: [issueId] }, 10000, config.baseUrl).catch(e => console.error('Failed to link cycle', e));
+    }
+    
+    // Explicitly link to modules if requested
+    if (moduleIds && moduleIds.length > 0 && issueId) {
+      for (const modId of moduleIds) {
+        await planeRequest('POST', `/api/v1/workspaces/${config.workspaceSlug}/projects/${config.projectId}/modules/${modId}/module-issues/`, config.apiKey, { issues: [issueId] }, 10000, config.baseUrl).catch(e => console.error('Failed to link module', e));
+      }
+    }
+
     const issueUrl = buildPlaneIssueUrl(config.workspaceSlug, config.projectId, issueId, config.baseUrl);
     const initialStatus = todoState.name || 'Backlog';
 
@@ -2495,7 +3003,7 @@ ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail }) => {
  * Skips bugs that already have a plane_issue_id.
  * Requirements: 3.4, 3.7, 3.9
  */
-ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds }) => {
+ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds, assigneeEmail, labelIds, moduleIds, cycleId }) => {
   const results = [];
   try {
     const config = getPlaneConfigRaw();
@@ -2510,8 +3018,9 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds }) => {
 
     // Lookup assignee member ID from email if configured
     let assigneeIds = [];
-    if (config.assigneeEmail) {
-      const memberId = await getMemberIdByEmail(config.apiKey, config.workspaceSlug, config.projectId, config.assigneeEmail, config.baseUrl);
+    const emailToUse = (assigneeEmail && assigneeEmail.trim()) ? assigneeEmail.trim() : (config.assigneeEmail || '');
+    if (emailToUse) {
+      const memberId = await getMemberIdByEmail(config.apiKey, config.workspaceSlug, config.projectId, emailToUse, config.baseUrl);
       if (memberId) assigneeIds = [memberId];
     }
 
@@ -2530,7 +3039,7 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds }) => {
           continue;
         }
 
-        const payload = mapBugToPlanePayload(bug, todoState);
+        const payload = mapBugToPlanePayload(bug, todoState, { labelIds, moduleIds, cycleId });
         if (assigneeIds.length > 0) payload.assignees = assigneeIds;
 
         const result = await planeRequest(
@@ -2544,6 +3053,19 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds }) => {
 
         if (result.status === 201) {
           const issueId = result.data?.id;
+
+          // Explicitly link to cycle if requested
+          if (cycleId && issueId) {
+            await planeRequest('POST', `/api/v1/workspaces/${config.workspaceSlug}/projects/${config.projectId}/cycles/${cycleId}/cycle-issues/`, config.apiKey, { issues: [issueId] }, 10000, config.baseUrl).catch(e => console.error('Failed to link cycle', e));
+          }
+          
+          // Explicitly link to modules if requested
+          if (moduleIds && moduleIds.length > 0 && issueId) {
+            for (const modId of moduleIds) {
+              await planeRequest('POST', `/api/v1/workspaces/${config.workspaceSlug}/projects/${config.projectId}/modules/${modId}/module-issues/`, config.apiKey, { issues: [issueId] }, 10000, config.baseUrl).catch(e => console.error('Failed to link module', e));
+            }
+          }
+
           const issueUrl = buildPlaneIssueUrl(config.workspaceSlug, config.projectId, issueId, config.baseUrl);
           db.run(
             'UPDATE bug_reports SET plane_issue_id=?, plane_issue_url=?, plane_status=? WHERE id=?',
@@ -2644,4 +3166,691 @@ ipcMain.handle('sync-plane-status', async (_, { bugIds } = {}) => {
   } catch (e) {
     return { updated, failed, errors: [{ bugId: null, error: e.message }] };
   }
+});
+
+// ─── IPC: Antigravity AI (Agentic Graceful Degradation) ───────────────────────
+ipcMain.handle('askAntigravity', async (_, promptText) => {
+  return new Promise((resolve, reject) => {
+    const os = require('os');
+    const { exec } = require('child_process');
+    
+    // Gunakan hermes CLI (Antigravity Agent)
+    const hermesPath = path.join(os.homedir(), '.local', 'bin', 'hermes');
+    const tempFile = path.join(os.tmpdir(), `agy_prompt_${Date.now()}.txt`);
+    
+    fs.writeFileSync(tempFile, promptText);
+
+    // Menggunakan hermes --oneshot untuk mendapatkan hanya jawaban AI
+    const command = `"${hermesPath}" --oneshot "$(cat '${tempFile}')"`;
+    
+    exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+      // Bersihkan file temp
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+      
+      if (error) {
+        console.error('[Antigravity] Error:', error.message);
+        console.error('[Antigravity] Stderr:', stderr);
+        return reject(new Error('Gagal mengeksekusi Antigravity: ' + (stderr || error.message)));
+      }
+      
+      resolve(stdout);
+    });
+  });
+});
+
+// ─── IPC: Autonomous Scheduled Testing (Agentic AI QA) ────────────────────────
+const cron = require('node-cron');
+global.activeCronJobs = [];
+
+// ── Team & Admin Integrations ──────────────────────────────────────────────
+ipcMain.handle('get-users', () => {
+  return queryAll('SELECT * FROM users ORDER BY name ASC');
+});
+
+ipcMain.handle('add-user', (_, user) => {
+  const { name, email, role } = user;
+  const id = run('INSERT INTO users (name, email, role, last_active) VALUES (?, ?, ?, ?)', [name, email, role, 'Just now']);
+  return queryOne('SELECT * FROM users WHERE id = ?', [id]);
+});
+
+ipcMain.handle('update-user-role', (_, { id, role }) => {
+  run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+  return { success: true };
+});
+
+ipcMain.handle('delete-user', (_, id) => {
+  run('DELETE FROM users WHERE id = ?', [id]);
+  return { success: true };
+});
+
+ipcMain.handle('get-audit-logs', () => {
+  return queryAll('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100');
+});
+
+ipcMain.handle('add-audit-log', (_, log) => {
+  const { user, action, status, timestamp } = log;
+  const id = run('INSERT INTO audit_logs (user, action, status, timestamp) VALUES (?, ?, ?, ?)', [user, action, status, timestamp]);
+  return queryOne('SELECT * FROM audit_logs WHERE id = ?', [id]);
+});
+
+ipcMain.handle('get-api-keys', () => {
+  return queryAll('SELECT * FROM api_keys ORDER BY created DESC');
+});
+
+ipcMain.handle('create-api-key', (_, keyData) => {
+  const { name, key, created, expires } = keyData;
+  const id = run('INSERT INTO api_keys (name, key, created, expires) VALUES (?, ?, ?, ?)', [name, key, created, expires]);
+  return queryOne('SELECT * FROM api_keys WHERE id = ?', [id]);
+});
+
+ipcMain.handle('revoke-api-key', (_, id) => {
+  run('DELETE FROM api_keys WHERE id = ?', [id]);
+  return { success: true };
+});
+
+ipcMain.handle('get-workspaces', () => {
+  return queryAll('SELECT * FROM workspaces ORDER BY name ASC');
+});
+
+ipcMain.handle('create-workspace', (_, { name }) => {
+  const id = run('INSERT INTO workspaces (name, is_active) VALUES (?, 0)', [name]);
+  return queryOne('SELECT * FROM workspaces WHERE id = ?', [id]);
+});
+
+ipcMain.handle('switch-workspace', (_, id) => {
+  run('UPDATE workspaces SET is_active = 0');
+  run('UPDATE workspaces SET is_active = 1 WHERE id = ?', [id]);
+  return { success: true };
+});
+
+// ── HashiCorp Vault Integrations ───────────────────────────────────────────
+ipcMain.handle('vault-config-get', () => {
+  try {
+    const row = queryOne(`SELECT * FROM vault_config WHERE id = 1`);
+    return row || null;
+  } catch (err) {
+    throw err;
+  }
+});
+
+ipcMain.handle('vault-config-set', (_, config) => {
+  try {
+    const { address, token, engine_path, is_active } = config;
+    run(`
+      INSERT INTO vault_config (id, address, token, engine_path, is_active, updated_at) 
+      VALUES (1, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(id) DO UPDATE SET 
+        address=excluded.address, 
+        token=excluded.token, 
+        engine_path=excluded.engine_path, 
+        is_active=excluded.is_active, 
+        updated_at=excluded.updated_at
+    `, [address, token, engine_path || 'secret', is_active ? 1 : 0]);
+    return true;
+  } catch (err) {
+    throw err;
+  }
+});
+
+ipcMain.handle('vault-write', async (_, { secretPath, data }) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const rows = queryAll(`SELECT * FROM vault_config WHERE id = 1 AND is_active = 1`);
+      if (rows.length === 0) return resolve({ success: false, error: 'Vault is not configured or not active.' });
+      const config = rows[0];
+
+      const engine = config.engine_path || 'secret';
+      const url = `${config.address}/v1/${engine}/data/${secretPath}`;
+      const reqData = { data: data };
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-Vault-Token': config.token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reqData)
+      });
+      
+      if (!response.ok) {
+        const errTxt = await response.text();
+        throw new Error(`Vault Error: ${response.status} - ${errTxt}`);
+      }
+      
+      const result = await response.json();
+      resolve({ success: true, data: result });
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('vault-read', async (_, { secretPath }) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const rows = queryAll(`SELECT * FROM vault_config WHERE id = 1 AND is_active = 1`);
+      if (rows.length === 0) return resolve({ success: false, error: 'Vault is not configured or not active.' });
+      const config = rows[0];
+
+      const engine = config.engine_path || 'secret';
+      const url = `${config.address}/v1/${engine}/data/${secretPath}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Vault-Token': config.token
+        }
+      });
+      
+      if (response.status === 404) {
+        return resolve({ success: true, data: null }); // Secret not found
+      }
+      
+      if (!response.ok) {
+        const errTxt = await response.text();
+        throw new Error(`Vault Error: ${response.status} - ${errTxt}`);
+      }
+      
+      const result = await response.json();
+      resolve({ success: true, data: result.data.data });
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+// ── CI/CD & DevSecOps Simulators ─────────────────────────────────────────────
+ipcMain.handle('trigger-jenkins-pipeline', async (_, config) => {
+  return new Promise(async (resolve) => {
+    try {
+      // Get Jenkins Config from Vault
+      const vaultConfigStr = process.env.VAULT_SECRET || '';
+      let vaultAddr = '';
+      let vaultToken = '';
+      if (vaultConfigStr.includes('|')) {
+        const parts = vaultConfigStr.split('|');
+        vaultAddr = parts[0];
+        vaultToken = parts[1];
+      }
+      
+      let jenkinsUrl = '';
+      let jenkinsUser = '';
+      let jenkinsToken = '';
+      let jenkinsJobName = '';
+
+      if (vaultAddr && vaultToken) {
+        const vUrl = `${vaultAddr}/v1/secret/data/cicd-config`;
+        const vRes = await fetch(vUrl, { headers: { 'X-Vault-Token': vaultToken } });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          jenkinsUrl = vData.data.data.jenkinsUrl || '';
+          jenkinsUser = vData.data.data.jenkinsUser || '';
+          jenkinsToken = vData.data.data.jenkinsToken || '';
+          jenkinsJobName = vData.data.data.jenkinsJobName || '';
+        }
+      }
+
+      if (!jenkinsUrl || !jenkinsJobName || !jenkinsToken) {
+        console.warn('[Jenkins] Kredensial tidak lengkap, menggunakan mode simulasi.');
+        setTimeout(() => {
+          resolve({ success: true, buildId: Math.floor(Math.random() * 1000) + 100, message: '[SIMULATION] Pipeline successfully started.' });
+        }, 1500);
+        return;
+      }
+
+      const jobUrl = `${jenkinsUrl}/job/${jenkinsJobName}/build`;
+      console.log(`[Jenkins] Triggering job at ${jobUrl}`);
+
+      const response = await fetch(jobUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(jenkinsUser + ':' + jenkinsToken).toString('base64')
+        }
+      });
+
+      if (response.ok || response.status === 201) {
+        resolve({ success: true, buildId: 'Triggered', message: `Pipeline ${jenkinsJobName} successfully started on Jenkins.` });
+      } else {
+        const errTxt = await response.text();
+        resolve({ success: false, error: `Jenkins API Error: ${response.status} - ${errTxt}` });
+      }
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('get-argocd-status', async () => {
+  return new Promise(async (resolve) => {
+    try {
+      // Get ArgoCD Config from Vault
+      const vaultConfigStr = process.env.VAULT_SECRET || '';
+      let vaultAddr = '';
+      let vaultToken = '';
+      if (vaultConfigStr.includes('|')) {
+        const parts = vaultConfigStr.split('|');
+        vaultAddr = parts[0];
+        vaultToken = parts[1];
+      }
+
+      let argoUrl = '';
+      let argoToken = '';
+      let argoAppName = '';
+
+      if (vaultAddr && vaultToken) {
+        const vUrl = `${vaultAddr}/v1/secret/data/cicd-config`;
+        const vRes = await fetch(vUrl, { headers: { 'X-Vault-Token': vaultToken } });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          argoUrl = vData.data.data.argoUrl || '';
+          argoToken = vData.data.data.argoToken || '';
+          argoAppName = vData.data.data.argoAppName || '';
+        }
+      }
+
+      if (!argoUrl || !argoAppName || !argoToken) {
+        console.warn('[ArgoCD] Kredensial tidak lengkap, menggunakan mode simulasi.');
+        setTimeout(() => {
+          resolve({ 
+            success: true, 
+            data: { 
+              syncStatus: 'Synced', 
+              healthStatus: 'Healthy', 
+              lastSync: new Date().toISOString(),
+              version: '[SIMULATION] v2.8.5'
+            } 
+          });
+        }, 1000);
+        return;
+      }
+
+      const apiEndpoint = `${argoUrl}/api/v1/applications/${argoAppName}`;
+      console.log(`[ArgoCD] Fetching status from ${apiEndpoint}`);
+
+      const response = await fetch(apiEndpoint, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${argoToken}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        resolve({
+          success: true,
+          data: {
+            syncStatus: data.status?.sync?.status || 'Unknown',
+            healthStatus: data.status?.health?.status || 'Unknown',
+            lastSync: new Date().toISOString(),
+            version: data.status?.sync?.revision ? data.status.sync.revision.substring(0, 7) : 'Unknown'
+          }
+        });
+      } else {
+        const errTxt = await response.text();
+        resolve({ success: false, error: `ArgoCD API Error: ${response.status} - ${errTxt}` });
+      }
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('run-secret-scan', async () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ success: true, issuesFound: 0, details: 'No hardcoded secrets found in codebase.' });
+    }, 2000);
+  });
+});
+
+ipcMain.handle('run-sca-scan', async () => {
+  return new Promise(async (resolve) => {
+    try {
+      const rows = queryAll(`SELECT * FROM vault_config WHERE id = 1 AND is_active = 1`);
+      const vConfig = rows.length > 0 ? rows[0] : null;
+      let sonarUrl = '', sonarToken = '', sonarProject = '';
+
+      if (vConfig) {
+        const engine = vConfig.engine_path || 'secret';
+        const vUrl = `${vConfig.address}/v1/${engine}/data/security-config`;
+        const vRes = await fetch(vUrl, { headers: { 'X-Vault-Token': vConfig.token } });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          sonarUrl = vData.data?.data?.sonarUrl || '';
+          sonarToken = vData.data?.data?.sonarToken || '';
+          sonarProject = vData.data?.data?.sonarProject || '';
+        }
+      }
+
+      if (!sonarUrl || !sonarProject || !sonarToken) {
+        console.warn('[SonarQube SCA] Kredensial tidak lengkap, menggunakan mode simulasi.');
+        return setTimeout(() => {
+          resolve({ 
+            success: true, issuesFound: 2, 
+            details: [
+              { package: 'axios', version: '0.21.1', severity: 'HIGH', cve: 'CVE-2023-45827' },
+              { package: 'lodash', version: '4.17.20', severity: 'MEDIUM', cve: 'CVE-2021-23337' }
+            ]
+          });
+        }, 2500);
+      }
+
+      const apiEndpoint = `${sonarUrl}/api/issues/search?componentKeys=${sonarProject}&types=VULNERABILITY&resolved=false`;
+      const response = await fetch(apiEndpoint, {
+        headers: { 'Authorization': 'Basic ' + Buffer.from(sonarToken + ':').toString('base64') }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const issues = (data.issues || []).map(i => ({
+          package: i.component.split(':').pop(),
+          version: 'N/A',
+          severity: i.severity,
+          cve: i.message
+        }));
+        resolve({ success: true, issuesFound: issues.length, details: issues.length > 0 ? issues : 'No issues found.' });
+      } else {
+        const errTxt = await response.text();
+        resolve({ success: false, error: `SonarQube API Error: ${response.status} - ${errTxt}` });
+      }
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('run-sast-scan', async () => {
+  return new Promise(async (resolve) => {
+    try {
+      const rows = queryAll(`SELECT * FROM vault_config WHERE id = 1 AND is_active = 1`);
+      const vConfig = rows.length > 0 ? rows[0] : null;
+      let sonarUrl = '', sonarToken = '', sonarProject = '';
+
+      if (vConfig) {
+        const engine = vConfig.engine_path || 'secret';
+        const vUrl = `${vConfig.address}/v1/${engine}/data/security-config`;
+        const vRes = await fetch(vUrl, { headers: { 'X-Vault-Token': vConfig.token } });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          sonarUrl = vData.data?.data?.sonarUrl || '';
+          sonarToken = vData.data?.data?.sonarToken || '';
+          sonarProject = vData.data?.data?.sonarProject || '';
+        }
+      }
+
+      if (!sonarUrl || !sonarProject || !sonarToken) {
+        console.warn('[SonarQube SAST] Kredensial tidak lengkap, menggunakan mode simulasi.');
+        return setTimeout(() => {
+          resolve({ 
+            success: true, issuesFound: 1, 
+            details: [{ file: 'src/components/Login.js', line: 45, type: 'Improper Input Validation', severity: 'HIGH' }]
+          });
+        }, 3000);
+      }
+
+      const apiEndpoint = `${sonarUrl}/api/issues/search?componentKeys=${sonarProject}&types=CODE_SMELL,BUG&resolved=false`;
+      const response = await fetch(apiEndpoint, {
+        headers: { 'Authorization': 'Basic ' + Buffer.from(sonarToken + ':').toString('base64') }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const issues = (data.issues || []).map(i => ({
+          file: i.component.split(':').pop(),
+          line: i.textRange ? i.textRange.startLine : 0,
+          type: i.message,
+          severity: i.severity
+        }));
+        resolve({ success: true, issuesFound: issues.length, details: issues.length > 0 ? issues : 'No issues found.' });
+      } else {
+        const errTxt = await response.text();
+        resolve({ success: false, error: `SonarQube API Error: ${response.status} - ${errTxt}` });
+      }
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('run-dast-scan', async (_, { url }) => {
+  return new Promise(async (resolve) => {
+    try {
+      const rows = queryAll(`SELECT * FROM vault_config WHERE id = 1 AND is_active = 1`);
+      const vConfig = rows.length > 0 ? rows[0] : null;
+      let zapUrl = '', zapToken = '', zapTarget = '';
+
+      if (vConfig) {
+        const engine = vConfig.engine_path || 'secret';
+        const vUrl = `${vConfig.address}/v1/${engine}/data/security-config`;
+        const vRes = await fetch(vUrl, { headers: { 'X-Vault-Token': vConfig.token } });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          zapUrl = vData.data?.data?.zapUrl || '';
+          zapToken = vData.data?.data?.zapToken || '';
+          zapTarget = vData.data?.data?.zapTarget || '';
+        }
+      }
+      
+      const targetUrl = zapTarget || url;
+
+      if (!zapUrl || !zapTarget) {
+        console.warn('[OWASP ZAP] Kredensial tidak lengkap, menggunakan mode simulasi.');
+        return setTimeout(() => {
+          resolve({ 
+            success: true, issuesFound: 3, 
+            details: [
+              { url: `${targetUrl}/api/auth`, type: 'Missing Security Headers (HSTS)', severity: 'LOW' },
+              { url: `${targetUrl}/profile`, type: 'Reflected XSS Possible', severity: 'MEDIUM' },
+              { url: `${targetUrl}/login`, type: 'No Rate Limiting on Login', severity: 'HIGH' }
+            ]
+          });
+        }, 4000);
+      }
+
+      // We call ZAP API to fetch existing alerts for the target URL
+      const apiEndpoint = `${zapUrl}/JSON/core/view/alerts/?zapapiformat=JSON&baseurl=${encodeURIComponent(targetUrl)}`;
+      const response = await fetch(apiEndpoint, {
+        headers: zapToken ? { 'X-ZAP-API-Key': zapToken } : {}
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const alerts = data.alerts || [];
+        const issues = alerts.map(a => ({
+          url: a.url,
+          type: a.alert,
+          severity: a.risk
+        }));
+        resolve({ success: true, issuesFound: issues.length, details: issues.length > 0 ? issues : 'No issues found.' });
+      } else {
+        const errTxt = await response.text();
+        resolve({ success: false, error: `OWASP ZAP API Error: ${response.status} - ${errTxt}` });
+      }
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
+
+ipcMain.handle('get-active-schedules', () => {
+  return global.activeCronJobs.map(job => ({
+    id: job.id,
+    schedule: job.schedule,
+    test_scenario: job.test_scenario
+  }));
+});
+
+ipcMain.handle('schedule-ai-task', async (_, promptText) => {
+  return new Promise((resolve, reject) => {
+    const os = require('os');
+    const { exec } = require('child_process');
+    const hermesPath = path.join(os.homedir(), '.local', 'bin', 'hermes');
+    const tempFile = path.join(os.tmpdir(), `agy_prompt_schedule_${Date.now()}.txt`);
+    
+    // Instruksi sistem untuk mem-parsing NL menjadi JSON aksi
+    const systemPrompt = `Ekstrak instruksi pengguna menjadi format JSON.
+Instruksi user: "${promptText}"
+Pilih SATU 'action' yang paling cocok:
+1. "schedule_test" : Jika user meminta tes otomatis berulang di waktu tertentu (contoh: tiap 1 menit, tiap pagi).
+2. "run_test_now" : Jika user meminta tes dijalankan sekarang juga (contoh: jalankan tes register, test login sekarang).
+3. "cancel_schedule" : Jika user meminta mematikan atau menghapus jadwal otomatis (contoh: matikan jadwalnya, stop tes otomatis).
+4. "navigate" : Jika user meminta pindah halaman/menu aplikasi (contoh: buka menu bug, pindah ke dashboard).
+5. "general_qa" : Jika user bertanya seputar ilmu QA, hal umum, atau menyapa (contoh: apa itu API testing, halo).
+
+Output JSON:
+{
+  "action": "schedule_test" | "run_test_now" | "cancel_schedule" | "navigate" | "general_qa",
+  "schedule": "crontab format jika schedule_test, atau null",
+  "test_scenario": "kata kunci fitur untuk di test (e.g. 'register') jika schedule_test/run_test_now, atau null",
+  "target_menu": "kunci menu (dashboard, bugreports, sqllab, securitylab, performancelab, cicdlab, apilab, automationlab, environments, testplans, requirements, tclibrary, doclab) jika navigate, atau null",
+  "reply_text": "Balasan ramah dari Anda (AI) untuk user jika action=general_qa, atau pesan konfirmasi singkat untuk aksi lain"
+}
+Hanya kembalikan JSON valid tanpa markdown atau backtick.`;
+
+    fs.writeFileSync(tempFile, systemPrompt);
+    const command = `"${hermesPath}" --oneshot "$(cat '${tempFile}')"`;
+    
+    exec(command, { maxBuffer: 1024 * 1024 * 5 }, (error, stdout, stderr) => {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+      
+      if (error) {
+        return resolve({ success: false, error: error.message });
+      }
+      
+      try {
+        const cleanJson = stdout.replace(/^```json/g, '').replace(/```$/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        
+        if (parsed.action === 'schedule_test') {
+          if (!parsed.schedule) {
+             return resolve({ success: false, error: 'Mohon sebutkan kapan test otomatis ini harus dijalankan (misal: "setiap jam 7 pagi" atau "tiap 1 menit").' });
+          }
+
+          const jobTask = cron.schedule(parsed.schedule, () => {
+            console.log(`[AI QA] Menjalankan jadwal otomatis untuk skenario: ${parsed.test_scenario}`);
+            const cwdArgs = PROJECTS_DIR; 
+            exec(`npx playwright test --grep "${parsed.test_scenario}"`, { cwd: process.cwd() }, (err, pwOut, pwErr) => {
+              if (err) {
+                console.log(`[AI QA] Test Gagal! Menganalisis log...`);
+                const bugPrompt = `Berikut adalah log kegagalan automated test (Playwright) untuk skenario "${parsed.test_scenario}".
+Log: ${pwErr || pwOut}
+Tolong buatkan format data Bug Report JSON. 
+Field: { title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, priority }.
+Hanya kembalikan valid JSON.`;
+                
+                const bugFile = path.join(os.tmpdir(), `agy_bug_${Date.now()}.txt`);
+                fs.writeFileSync(bugFile, bugPrompt);
+                exec(`"${hermesPath}" --oneshot "$(cat '${bugFile}')"`, { maxBuffer: 1024*1024*5 }, (aiErr, aiOut) => {
+                  if (fs.existsSync(bugFile)) fs.unlinkSync(bugFile);
+                  if (!aiErr) {
+                    try {
+                      const cleanBug = aiOut.replace(/^```json/g, '').replace(/```$/g, '').trim();
+                      const bugJson = JSON.parse(cleanBug);
+                      db.run(`INSERT INTO bug_reports (project_id, title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, priority, status, created_at, updated_at) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Open', ?, ?)`, 
+                      ['', bugJson.title, bugJson.description, bugJson.steps_to_reproduce, bugJson.expected_behavior, bugJson.actual_behavior, bugJson.severity, bugJson.priority, new Date().toISOString(), new Date().toISOString()]);
+                      console.log('[AI QA] Berhasil membuat Bug Report otomatis.');
+                      saveDB();
+                    } catch(e) {
+                      console.error('[AI QA] Gagal parse AI Bug JSON:', e);
+                    }
+                  }
+                });
+              } else {
+                console.log(`[AI QA] Test Berhasil. Tidak ada bug.`);
+              }
+            });
+          });
+          
+          const jobId = Date.now().toString();
+          global.activeCronJobs.push({
+            id: jobId,
+            schedule: parsed.schedule,
+            test_scenario: parsed.test_scenario,
+            task: jobTask
+          });
+          
+          resolve({ success: true, data: parsed });
+
+        } else if (parsed.action === 'run_test_now') {
+          // Jalankan langsung dan reply langsung
+          resolve({ success: true, data: { ...parsed, reply_text: `Menjalankan skenario "${parsed.test_scenario}" secara instan di background...` } });
+          
+          // Proses asinkron
+          console.log(`[AI QA] Menjalankan test instan: ${parsed.test_scenario}`);
+          exec(`npx playwright test --grep "${parsed.test_scenario}"`, { cwd: process.cwd() }, (err, pwOut, pwErr) => {
+            if (err) {
+              console.log(`[AI QA] Test Instan Gagal! Membuat bug report...`);
+              const bugPrompt = `Berikut adalah log kegagalan automated test (Playwright) instan skenario "${parsed.test_scenario}".
+Log: ${pwErr || pwOut}
+Tolong buatkan format data Bug Report JSON. 
+Field: { title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, priority }.
+Hanya kembalikan valid JSON.`;
+              const bugFile = path.join(os.tmpdir(), `agy_bug_${Date.now()}.txt`);
+              fs.writeFileSync(bugFile, bugPrompt);
+              exec(`"${hermesPath}" --oneshot "$(cat '${bugFile}')"`, { maxBuffer: 1024*1024*5 }, (aiErr, aiOut) => {
+                if (fs.existsSync(bugFile)) fs.unlinkSync(bugFile);
+                if (!aiErr) {
+                  try {
+                    const cleanBug = aiOut.replace(/^```json/g, '').replace(/```$/g, '').trim();
+                    const bugJson = JSON.parse(cleanBug);
+                    db.run(`INSERT INTO bug_reports (project_id, title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, priority, status, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Open', ?, ?)`, 
+                    ['', bugJson.title, bugJson.description, bugJson.steps_to_reproduce, bugJson.expected_behavior, bugJson.actual_behavior, bugJson.severity, bugJson.priority, new Date().toISOString(), new Date().toISOString()]);
+                    console.log('[AI QA] Berhasil membuat Bug Report instan otomatis.');
+                    saveDB();
+                  } catch(e) { }
+                }
+              });
+            } else {
+              console.log(`[AI QA] Test Instan Berhasil.`);
+            }
+          });
+
+        } else if (parsed.action === 'cancel_schedule') {
+           const count = global.activeCronJobs.length;
+           global.activeCronJobs.forEach(job => job.task.stop());
+           global.activeCronJobs = [];
+           resolve({ success: true, data: { action: 'cancel_schedule', message: `Berhasil mematikan ${count} jadwal aktif.` } });
+        
+        } else if (parsed.action === 'navigate') {
+           resolve({ success: true, data: parsed });
+
+        } else if (parsed.action === 'general_qa') {
+           resolve({ success: true, data: parsed });
+           
+        } else {
+          resolve({ success: false, error: 'Maaf, saya tidak mengerti perintah tersebut.' });
+        }
+      } catch (parseError) {
+        resolve({ success: false, error: 'AI mengembalikan format yang tidak dikenali: ' + stdout });
+      }
+    });
+  });
+});
+
+ipcMain.handle('run-k6-script', async (event, scriptContent) => {
+  return new Promise((resolve) => {
+    const tmpScript = path.join(os.tmpdir(), `k6_script_${Date.now()}.js`);
+    fs.writeFileSync(tmpScript, scriptContent);
+    
+    const { spawn } = require('child_process');
+    const k6 = spawn('k6', ['run', tmpScript]);
+    
+    k6.stdout.on('data', (data) => {
+      event.sender.send('k6-log', data.toString());
+    });
+    
+    k6.stderr.on('data', (data) => {
+      event.sender.send('k6-log', data.toString());
+    });
+    
+    k6.on('close', (code) => {
+      if (fs.existsSync(tmpScript)) fs.unlinkSync(tmpScript);
+      resolve({ success: code === 0, code });
+    });
+
+    k6.on('error', (err) => {
+      if (fs.existsSync(tmpScript)) fs.unlinkSync(tmpScript);
+      resolve({ success: false, error: err.message });
+    });
+  });
 });

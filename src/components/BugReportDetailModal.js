@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Edit3, X } from 'lucide-react';
 import './TestCaseDetailModal.css';
 
 const SEVERITY_COLORS = {
@@ -111,8 +112,8 @@ export default function BugReportDetailModal({ bug, onClose, onEdit }) {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {bug.severity && <SeverityBadge severity={bug.severity} />}
             {bug.status && <StatusBadge status={bug.status} />}
-            <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Edit</button>
-            <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+            <button className="btn btn-secondary btn-sm" onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Edit3 size={14} /> Edit</button>
+            <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
           </div>
         </div>
 

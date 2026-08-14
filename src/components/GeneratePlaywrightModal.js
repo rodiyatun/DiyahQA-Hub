@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateWithOpenAI } from './AutomationLab/automationUtils';
+import { X, RefreshCw, AlertTriangle, Globe, Webhook, Zap, Bot, Rocket, EyeOff, Eye, XCircle, ClipboardList, CheckCircle, Save, Code2 } from 'lucide-react';
 
 // ─── Convert TC → Playwright script (smart rule-based) ───────────────────────
 
@@ -210,6 +211,43 @@ Instruksi:
   return generateWithOpenAI(apiKey, prompt);
 }
 
+async function tcToPlaywrightGemini(tc, geminiApiKey) {
+  const prompt = `Generate Playwright TypeScript test untuk test case berikut. Gunakan locator yang AKURAT dan SPESIFIK.
+
+Judul: ${tc.title}
+Module: ${tc.module || '-'}
+Website/URL: ${tc.website || 'https://example.com'}
+Test Data: ${tc.test_data || '-'}
+
+Scenario (langkah-langkah):
+${tc.scenario || '(tidak ada langkah)'}
+
+Expected Result:
+${tc.expected_result || '(tidak ada expected result)'}
+
+Instruksi:
+- Output HANYA raw typescript code yang valid untuk Playwright (import { test, expect } from '@playwright/test').
+- Tulis KODE SAJA tanpa markdown block (\`\`\`) dan tanpa penjelasan teks apapun.
+- Gunakan page locator yang sangat akurat.
+- Gunakan getByLabel, getByPlaceholder, getByRole dengan nama yang SESUAI konteks (bukan 'button' generik)
+- Isi value fill() dengan data dari Test Data jika tersedia`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2 }
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Gagal dari Gemini');
+  let content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return content.replace(/^```typescript\n|^```ts\n|^```\n/gm, '').replace(/```$/gm, '').trim();
+}
+
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
@@ -248,19 +286,40 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
       const projectType = selectedProject?.type || 'web';
       setCode(tcToPlaywright(tc, projectType));
       setSaved(false);
-      return;
-    }
-    if (!apiKey.trim()) return setError('API key belum diisi.');
-    setGenerating(true);
-    setError('');
-    try {
-      const result = await tcToPlaywrightAI(tc, apiKey);
-      setCode(result);
-      setSaved(false);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setGenerating(false);
+    } else if (mode === 'antigravity') {
+      const geminiKey = localStorage.getItem('ai_tc_key_gemini');
+      if (!geminiKey) {
+        setError('API Key Gemini belum diatur. Silakan atur di tab Figma + PRD terlebih dahulu.');
+        return;
+      }
+      setGenerating(true);
+      setError('');
+      try {
+        const generated = await tcToPlaywrightGemini(tc, geminiKey);
+        setCode(generated);
+        setSaved(false);
+      } catch (err) {
+        setError(err.message || 'Gagal generate dengan Antigravity (Gemini)');
+      } finally {
+        setGenerating(false);
+      }
+    } else {
+      // mode ai (OpenAI)
+      if (!apiKey) {
+        setError('API Key OpenAI belum diisi');
+        return;
+      }
+      setGenerating(true);
+      setError('');
+      try {
+        const generated = await tcToPlaywrightAI(tc, apiKey);
+        setCode(generated);
+        setSaved(false);
+      } catch (err) {
+        setError(err.message || 'Gagal generate');
+      } finally {
+        setGenerating(false);
+      }
     }
   }
 
@@ -296,12 +355,12 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
       <div className="modal" style={{ maxWidth: 820, width: '100%', maxHeight: '92vh' }}>
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">🎭 Generate Playwright Script</h2>
+            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Code2 size={20} /> Generate Playwright Script</h2>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
               {tc.no ? `${tc.no} — ` : ''}{tc.title}
             </p>
           </div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: 'calc(92vh - 120px)', padding: '0 0 8px' }}>
@@ -311,10 +370,10 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label>Simpan ke Project Automation Lab</label>
               {loadingProjects ? (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>⏳ Memuat...</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6 }}><RefreshCw size={14} className="spin" /> Memuat...</div>
               ) : projects.length === 0 ? (
-                <div style={{ fontSize: 12, color: '#f97316', padding: '8px 0' }}>
-                  ⚠️ Belum ada project. Buat project dulu di Automation Lab.
+                <div style={{ fontSize: 12, color: '#f97316', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertTriangle size={14} /> Belum ada project. Buat project dulu di Automation Lab.
                 </div>
               ) : (
                 <select value={selectedProject?.path || ''} onChange={e => {
@@ -322,7 +381,7 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
                   setSaved(false);
                 }}>
                   {projects.map(p => (
-                    <option key={p.path} value={p.path}>{p.type === 'api' ? '🔌' : '🌐'} {p.name}</option>
+                    <option key={p.path} value={p.path}>{p.type === 'api' ? 'Webhook' : 'Globe'} {p.name}</option>
                   ))}
                 </select>
               )}
@@ -338,8 +397,9 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Mode:</span>
             {[
-              { id: 'offline', label: '⚡ Rule-based (offline)' },
-              { id: 'ai',      label: '🤖 OpenAI (akurat)' },
+              { id: 'offline', label: <span style={{display: 'flex', alignItems: 'center', gap: 4}}><Zap size={14} /> Rule-based (offline)</span> },
+              { id: 'ai',      label: <span style={{display: 'flex', alignItems: 'center', gap: 4}}><Bot size={14} /> OpenAI (akurat)</span> },
+              { id: 'antigravity', label: <span style={{display: 'flex', alignItems: 'center', gap: 4}}><Rocket size={14} /> Antigravity (Otonom)</span> }
             ].map(m => (
               <button key={m.id}
                 className={`btn btn-sm ${mode === m.id ? 'btn-primary' : 'btn-secondary'}`}
@@ -353,15 +413,15 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
                   onChange={e => saveApiKey(e.target.value)} placeholder="sk-proj-..."
                   style={{ width: 200, fontFamily: 'monospace', fontSize: 11 }} />
                 <button className="btn btn-secondary btn-sm" onClick={() => setShowKey(p => !p)}>
-                  {showKey ? '🙈' : '👁️'}
+                  {showKey ? <EyeOff size={14}/> : <Eye size={14}/>}
                 </button>
               </div>
             )}
-            <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }}
+            <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}
               onClick={handleGenerate} disabled={generating}>
               {generating
-                ? <><span style={{ display:'inline-block', animation:'spin 1s linear infinite' }}>⟳</span> Generating...</>
-                : '🔄 Re-generate'}
+                ? <><RefreshCw size={14} className="spin" /> {mode === 'antigravity' ? 'Antigravity thinking...' : 'Generating...'}</>
+                : <><RefreshCw size={14} /> Re-generate</>}
             </button>
           </div>
 
@@ -381,8 +441,8 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
           </div>
 
           {error && (
-            <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 12, color: '#ef4444' }}>
-              ❌ {error}
+            <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 12, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <XCircle size={14} /> {error}
             </div>
           )}
 
@@ -394,7 +454,7 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
                 tests/{fileName.endsWith('.spec.ts') || fileName.endsWith('.spec.js') ? fileName : fileName + '.spec.ts'}
               </span>
               <button className="btn btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(code)}
-                style={{ fontSize: 10 }}>📋 Copy</button>
+                style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><ClipboardList size={14} /> Copy</button>
             </div>
             <textarea value={code} onChange={e => { setCode(e.target.value); setSaved(false); }}
               style={{ width: '100%', minHeight: 300, background: '#0f172a', color: '#94a3b8',
@@ -414,15 +474,15 @@ export default function GeneratePlaywrightModal({ testcase: tc, onClose }) {
           <button className="btn btn-secondary" onClick={onClose}>Tutup</button>
           {saved ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 600 }}>✅ Tersimpan!</span>
+              <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={14} /> Tersimpan!</span>
               <button className="btn btn-secondary btn-sm" onClick={() => setSaved(false)}>Simpan ulang</button>
             </div>
           ) : (
             <button className="btn btn-primary" onClick={handleSave}
-              disabled={saving || !selectedProject || !code.trim() || projects.length === 0}>
+              disabled={saving || !selectedProject || !code.trim() || projects.length === 0} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {saving
-                ? <><span style={{ display:'inline-block', animation:'spin 1s linear infinite' }}>⟳</span> Menyimpan...</>
-                : '💾 Simpan ke Automation Lab'}
+                ? <><RefreshCw size={14} className="spin" /> Menyimpan...</>
+                : <><Save size={14} /> Simpan ke Automation Lab</>}
             </button>
           )}
         </div>

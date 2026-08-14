@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCw, Plus, X, Bot, FileText, Database, Settings, Video, Search, Image as ImageIcon, Flame, CheckCircle, ChevronLeft, ChevronRight, Check, BookOpen, Clock, AlertTriangle, Monitor, Bug, Code2, Save, XCircle, Copy, Target } from 'lucide-react';
 import { PLAYWRIGHT_MODULES } from './playwrightAcademy';
 import { analyzePlaywrightError } from './automationUtils';
 import { TUTORIALS } from './tutorialData';
@@ -86,6 +87,7 @@ export function TestDataTab({ project }) {
   const [content, setContent]   = useState('');
   const [dirty, setDirty]       = useState(false);
   const [newName, setNewName]   = useState('');
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => { loadFiles(); }, [project]);
 
@@ -126,6 +128,24 @@ export function TestDataTab({ project }) {
     if (selected === name) { setSelected(null); setContent(''); }
   }
 
+  async function generateData() {
+    const filename = window.prompt('Nama file hasil generate (misal: users.csv atau data.json):');
+    if (!filename) return;
+    const desc = window.prompt('Instruksi Antigravity (misal: Buatkan 10 baris data login e-commerce dengan kombinasi valid/invalid):');
+    if (!desc) return;
+    
+    setGenerating(true);
+    try {
+      await window.api.waAntigravityData({ projPath: project.path, fileName: filename, description: desc });
+      await loadFiles();
+      openFile(filename);
+    } catch(err) {
+      window.alert('Error: Gagal generate: ' + err.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   // Parse CSV ke tabel preview
   function parseCSV(text) {
     const lines = text.trim().split('\n');
@@ -141,21 +161,26 @@ export function TestDataTab({ project }) {
     <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 220px)', minHeight: 0 }}>
       {/* Sidebar */}
       <div style={{ width: 200, flexShrink: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-card)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           DATA FILES
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => {
-            const n = window.prompt('Nama file (misal: users.csv, data.json):');
-            if (n) createFile(n);
-          }}>+</button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={generateData} title="Generate Data with Antigravity" disabled={generating}>
+              {generating ? <RefreshCw size={14} className="spin" /> : <Bot size={14} />}
+            </button>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => {
+              const n = window.prompt('Nama file (misal: users.csv, data.json):');
+              if (n) createFile(n);
+            }}><Plus size={14}/></button>
+          </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {files.length === 0 && <div style={{ padding: 12, fontSize: 11, color: 'var(--text-muted)' }}>Belum ada data file</div>}
           {files.map(f => (
             <div key={f.name} className={`wa-file-item ${selected === f.name ? 'active' : ''}`} onClick={() => openFile(f.name)}>
-              <span>{f.name.endsWith('.json') ? '📋' : f.name.endsWith('.ts') ? '📘' : '📊'}</span>
+              <span style={{ display: 'flex' }}>{f.name.endsWith('.json') ? <FileText size={14}/> : f.name.endsWith('.ts') ? <Code2 size={14}/> : <Database size={14}/>}</span>
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{f.name}</span>
               <button className="btn btn-ghost btn-icon btn-sm" onClick={e => { e.stopPropagation(); deleteFile(f.name); }}
-                style={{ color: 'var(--danger)', fontSize: 10 }}>✕</button>
+                style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14}/></button>
             </div>
           ))}
         </div>
@@ -167,7 +192,7 @@ export function TestDataTab({ project }) {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>data/{selected}</span>
             {dirty && <span style={{ fontSize: 10, color: '#f59e0b' }}>●</span>}
-            <button className="btn btn-primary btn-sm" onClick={saveFile} disabled={!dirty} style={{ marginLeft: 'auto' }}>💾 Save</button>
+            <button className="btn btn-primary btn-sm" onClick={saveFile} disabled={!dirty} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}><Save size={14}/> Save</button>
           </div>
         )}
 
@@ -252,7 +277,7 @@ export default defineConfig({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="settings-section">
-          <h3>🌐 Browser & Execution</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Monitor size={14}/> Browser & Execution</h3>
           <div className="form-group"><label>Browser</label>
             <select value={config.browser} onChange={e => set('browser', e.target.value)}>
               {['chromium', 'firefox', 'webkit'].map(b => <option key={b}>{b}</option>)}
@@ -276,12 +301,12 @@ export default defineConfig({
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', marginTop: 4 }}>
             <input type="checkbox" checked={config.headed} onChange={e => set('headed', e.target.checked)} style={{ width: 'auto' }} />
-            🪟 Headed mode (tampilkan browser)
+            Headed mode (tampilkan browser)
           </label>
         </div>
 
         <div className="settings-section">
-          <h3>🔧 Environment</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Settings size={14}/> Environment</h3>
           <div className="form-group"><label>Base URL</label>
             <input value={config.baseUrl} onChange={e => set('baseUrl', e.target.value)} placeholder="https://staging.example.com" />
           </div>
@@ -300,7 +325,7 @@ export default defineConfig({
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary" onClick={saveConfig}>{saved ? '✅ Tersimpan!' : '💾 Simpan Config'}</button>
+        <button className="btn btn-primary" onClick={saveConfig} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{saved ? <><CheckCircle size={14}/> Tersimpan!</> : <><Save size={14}/> Simpan Config</>}</button>
       </div>
 
       <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
@@ -322,6 +347,8 @@ export function FailureCenterTab({ project }) {
   const [screenshot, setScreenshot] = useState(null);
   const [errorLog, setErrorLog]     = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [healing, setHealing] = useState(false);
+  const [healResult, setHealResult] = useState('');
 
   useEffect(() => { loadFailures(); }, [project]);
 
@@ -330,11 +357,15 @@ export function FailureCenterTab({ project }) {
     setFailures(list || []);
     setSelected(null);
     setScreenshot(null);
+    setErrorLog('');
+    setHealResult('');
   }
 
   async function selectFailure(f) {
     setSelected(f);
     setSuggestions([]);
+    setHealResult('');
+    setErrorLog('');
     // Load first screenshot
     if (f.screenshots.length) {
       const img = await window.api.waReadImage({ imagePath: f.screenshots[0] });
@@ -348,9 +379,30 @@ export function FailureCenterTab({ project }) {
     await window.api.waOpenTrace({ projPath: project.path, tracePath });
   }
 
-  function analyzeError() {
+  async function analyzeError() {
     if (!errorLog.trim()) return;
-    setSuggestions(analyzePlaywrightError(errorLog));
+    setSuggestions([{ icon: '🔍', title: 'Menganalisa dengan AI (Antigravity)...', desc: 'Mohon tunggu', fix: '' }]);
+    try {
+      const promptText = `Test playwright "${selected?.testName}" gagal. Berikut log errornya:\n${errorLog}\nBerikan penjelasan penyebab kegagalan dan solusinya secara singkat. (Maksimal 2 kalimat, gunakan bahasa Indonesia).`;
+      const response = await window.api.askAntigravity(promptText);
+      setSuggestions([{ icon: '🤖', title: 'Analisis AI Selesai', desc: 'Penyebab dan Solusi:', fix: response }]);
+    } catch(err) {
+      setSuggestions([{ icon: '❌', title: 'Gagal Menganalisa', desc: err.message, fix: '' }]);
+    }
+  }
+
+  async function handleAutoHeal() {
+    if (!errorLog.trim()) return;
+    setHealing(true);
+    setHealResult('');
+    try {
+      const result = await window.api.waAntigravityHeal({ projPath: project.path, testName: selected?.testName, errorLog });
+      setHealResult('Success: Selesai diperbaiki oleh Antigravity:\n' + result);
+    } catch(err) {
+      setHealResult('Error: Gagal: ' + err.message);
+    } finally {
+      setHealing(false);
+    }
   }
 
   return (
@@ -359,7 +411,7 @@ export function FailureCenterTab({ project }) {
       <div style={{ width: 240, flexShrink: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-card)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>FAILURES ({failures.length})</span>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={loadFailures} title="Refresh">↺</button>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={loadFailures} title="Refresh"><RefreshCw size={14}/></button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {failures.length === 0 && (
@@ -370,9 +422,9 @@ export function FailureCenterTab({ project }) {
           {failures.map(f => (
             <div key={f.id} className={`wa-file-item ${selected?.id === f.id ? 'active' : ''}`}
               onClick={() => selectFailure(f)} style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>❌ {f.testName}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}><XCircle size={14} color="#ef4444"/> {f.testName}</div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                {f.screenshots.length} 📷 · {f.videos.length} 🎬 · {f.traces.length} 🔍
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{f.screenshots.length} <ImageIcon size={10}/></span> · <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{f.videos.length} <Video size={10}/></span> · <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{f.traces.length} <Search size={10}/></span>
               </div>
             </div>
           ))}
@@ -388,15 +440,15 @@ export function FailureCenterTab({ project }) {
         ) : (
           <>
             <div style={{ border: '1px solid #ef4444', borderRadius: 12, background: 'rgba(239,68,68,0.05)', padding: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#ef4444', marginBottom: 8 }}>❌ {selected.testName}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><XCircle size={16}/> {selected.testName}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {selected.traces.map((t, i) => (
-                  <button key={i} className="btn btn-secondary btn-sm" onClick={() => openTrace(t)}>
-                    🔍 Buka Trace {i + 1}
+                  <button key={i} className="btn btn-secondary btn-sm" onClick={() => openTrace(t)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Search size={14}/> Buka Trace {i + 1}
                   </button>
                 ))}
                 {selected.videos.map((v, i) => (
-                  <div key={i} style={{ fontSize: 12, color: 'var(--text-muted)' }}>🎬 Video tersedia: {v.split('/').pop()}</div>
+                  <div key={i} style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}><Video size={14}/> Video tersedia: {v.split('/').pop()}</div>
                 ))}
               </div>
             </div>
@@ -404,7 +456,7 @@ export function FailureCenterTab({ project }) {
             {screenshot && (
               <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ padding: '8px 14px', background: 'var(--bg-secondary)', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-                  📷 Screenshot ({selected.screenshots.length} file)
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ImageIcon size={14}/> Screenshot ({selected.screenshots.length} file)</span>
                 </div>
                 <img src={screenshot} alt="Test failure screenshot"
                   style={{ width: '100%', maxHeight: 350, objectFit: 'contain', background: '#0f172a' }} />
@@ -422,11 +474,19 @@ export function FailureCenterTab({ project }) {
             )}
 
             <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>🔥 AI Error Analyzer</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}><Flame size={14}/> AI Error Analyzer</div>
               <textarea rows={4} value={errorLog} onChange={e => setErrorLog(e.target.value)}
                 style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, background: '#0d1117', color: '#e2e8f0', border: '1px solid #1e293b', borderRadius: 8, padding: 10, resize: 'vertical' }}
                 placeholder="Paste error message dari log Playwright..." />
-              <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={analyzeError}>🔍 Analisis</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="btn btn-secondary btn-sm" onClick={analyzeError} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Search size={14}/> Debug with AI (Antigravity)
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={handleAutoHeal} disabled={healing || !errorLog.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {healing ? <><RefreshCw size={14} className="spin" /> Memperbaiki...</> : <><AlertTriangle size={14}/> Heal with AI (Antigravity)</>}
+                </button>
+              </div>
+              {healResult && <div style={{ marginTop: 10, fontSize: 12, padding: 10, background: 'var(--bg-secondary)', borderRadius: 8, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{healResult}</div>}
               {suggestions.map((s, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, marginTop: 8, background: 'var(--bg-secondary)' }}>
                   <span style={{ fontSize: 20 }}>{s.icon}</span>
@@ -458,7 +518,7 @@ export function LocatorInspectorTab({ project }) {
 
   async function startInspect() {
     if (!url.trim()) return alert('URL wajib diisi');
-    setLogs([{ type: 'info', text: `🔍 Membuka browser inspector untuk: ${url}\n` }]);
+    setLogs([{ type: 'info', text: `INFO: Membuka browser inspector untuk: ${url}\n` }]);
     setRunning(true);
     await window.api.waLocatorInspect({ projPath: project.path, url });
     setRunning(false);
@@ -467,15 +527,15 @@ export function LocatorInspectorTab({ project }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-card)', padding: 20 }}>
-        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>🎯 Visual Locator Inspector</h3>
+        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}><Target size={14}/> Visual Locator Inspector</h3>
         <div style={{ padding: '12px 16px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
           Inspector akan membuka browser Chromium. Hover elemen di halaman untuk melihat locator terbaik (getByRole, getByLabel, getByTestId, dll.) yang tampil sebagai overlay di pojok kanan atas browser.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://staging.example.com/login"
             style={{ flex: 1 }} onKeyDown={e => e.key === 'Enter' && startInspect()} />
-          <button className="btn btn-primary" onClick={startInspect} disabled={running}>
-            {running ? <><span className="wa-spinning">⟳</span> Inspecting...</> : '🎯 Start Inspector'}
+          <button className="btn btn-primary" onClick={startInspect} disabled={running} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {running ? <><RefreshCw size={14} className="spin" /> Inspecting...</> : <><Target size={14}/> Start Inspector</>}
           </button>
         </div>
         <div style={{ marginTop: 16 }}>
@@ -518,14 +578,14 @@ export function TutorialTab() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => { setSelected(null); setActiveStep(0); }}>← Kembali</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => { setSelected(null); setActiveStep(0); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><ChevronLeft size={14}/> Kembali</button>
           <div>
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 700, background: `${levelColor[tutorial.level]}22`, color: levelColor[tutorial.level] }}>
               {levelLabel[tutorial.level]}
             </span>
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginLeft: 8 }}>{tutorial.icon} {tutorial.title}</span>
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>⏱ {tutorial.duration}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12}/> {tutorial.duration}</span>
         </div>
 
         {/* Step progress */}
@@ -537,7 +597,7 @@ export function TutorialTab() {
                 style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                   background: i === activeStep ? '#8b5cf6' : i < activeStep ? '#22c55e' : 'var(--bg-secondary)',
                   color: i <= activeStep ? '#fff' : 'var(--text-muted)' }}>
-                {i < activeStep ? '✓' : i + 1}
+                {i < activeStep ? <Check size={14}/> : i + 1}
               </button>
               {i < tutorial.steps.length - 1 && (
                 <div style={{ flex: 1, height: 2, background: i < activeStep ? '#22c55e' : 'var(--border)', transition: 'background 0.3s' }} />
@@ -560,7 +620,7 @@ export function TutorialTab() {
           </div>
           {step.tip && (
             <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontSize: 12, color: '#f59e0b', marginBottom: step.code ? 16 : 0 }}>
-              💡 <strong>Tip:</strong> {step.tip}
+              <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }}/> <strong>Tip:</strong> {step.tip}
             </div>
           )}
           {step.code && (
@@ -569,19 +629,19 @@ export function TutorialTab() {
               <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 16, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre', overflowX: 'auto', maxHeight: 320, overflowY: 'auto' }}>
                 {step.code}
               </div>
-              <button className="btn btn-secondary btn-sm" style={{ marginTop: 6 }}
-                onClick={() => navigator.clipboard.writeText(step.code)}>📋 Copy</button>
+              <button className="btn btn-secondary btn-sm" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}
+                onClick={() => navigator.clipboard.writeText(step.code)}><Copy size={14}/> Copy</button>
             </div>
           )}
         </div>
 
         {/* Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button className="btn btn-secondary" onClick={() => setActiveStep(p => p - 1)} disabled={isFirst}>← Sebelumnya</button>
+          <button className="btn btn-secondary" onClick={() => setActiveStep(p => p - 1)} disabled={isFirst} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ChevronLeft size={14}/> Sebelumnya</button>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeStep + 1} / {tutorial.steps.length}</span>
           {isLast
-            ? <button className="btn btn-primary" onClick={() => { setSelected(null); setActiveStep(0); }}>✅ Selesai</button>
-            : <button className="btn btn-primary" onClick={() => setActiveStep(p => p + 1)}>Selanjutnya →</button>
+            ? <button className="btn btn-primary" onClick={() => { setSelected(null); setActiveStep(0); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={14}/> Selesai</button>
+            : <button className="btn btn-primary" onClick={() => setActiveStep(p => p + 1)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Selanjutnya <ChevronRight size={14}/></button>
           }
         </div>
       </div>
@@ -591,7 +651,7 @@ export function TutorialTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ padding: '14px 18px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, fontSize: 13, color: 'var(--text-secondary)' }}>
-        📖 Pilih tutorial untuk mulai belajar cara menggunakan Automation Lab. Tutorial dibagi berdasarkan level dan topik.
+        <BookOpen size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: 6 }}/> Pilih tutorial untuk mulai belajar cara menggunakan Automation Lab. Tutorial dibagi berdasarkan level dan topik.
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
         {TUTORIALS.map(t => (
@@ -609,7 +669,7 @@ export function TutorialTab() {
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{t.description}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⏱ {t.duration} · {t.steps.length} langkah</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11}/> {t.duration} · {t.steps.length} langkah</span>
               <span style={{ fontSize: 12, color: '#8b5cf6', fontWeight: 500 }}>Mulai →</span>
             </div>
           </div>

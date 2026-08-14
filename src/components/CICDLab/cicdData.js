@@ -1,10 +1,12 @@
 // ─── CI/CD Academy Data ───────────────────────────────────────────────────────
+import React from 'react';
+import { GitBranch, RefreshCw, Github, PlaySquare } from 'lucide-react';
 
 export const CICD_ROADMAP = [
   {
     id: 'git',
     title: 'Git Fundamentals',
-    icon: '🌿',
+    icon: <GitBranch size={16} />,
     lessons: [
       {
         id: 'git-branch',
@@ -65,7 +67,7 @@ Sebagai QA Engineer, kamu harus memahami bahwa pipeline pada PR adalah "gate" pe
   {
     id: 'cicd-concepts',
     title: 'Konsep CI/CD',
-    icon: '🔄',
+    icon: <RefreshCw size={16} />,
     lessons: [
       {
         id: 'what-cicd',
@@ -106,7 +108,7 @@ Untuk QA, CI/CD adalah cara memastikan automation tests berjalan secara konsiste
   {
     id: 'github-actions',
     title: 'GitHub Actions',
-    icon: '🐙',
+    icon: <Github size={16} />,
     lessons: [
       {
         id: 'gha-structure',
@@ -188,7 +190,7 @@ jobs:
   {
     id: 'playwright-pipeline',
     title: 'Pipeline untuk Playwright',
-    icon: '🎭',
+    icon: <PlaySquare size={16} />,
     lessons: [
       {
         id: 'playwright-full',

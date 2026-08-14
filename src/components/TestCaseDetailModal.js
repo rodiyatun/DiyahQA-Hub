@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import GeneratePlaywrightModal from './GeneratePlaywrightModal';
+import { Bug, Code2, Edit3, X } from 'lucide-react';
 import './TestCaseDetailModal.css';
 
 export default function TestCaseDetailModal({ testcase: tc, onClose, onEdit, onCreateBugFromTC }) {
@@ -27,18 +28,19 @@ export default function TestCaseDetailModal({ testcase: tc, onClose, onEdit, onC
               <button
                 className="btn btn-danger btn-sm"
                 onClick={() => { onCreateBugFromTC(tc); onClose(); }}
-              >🐛 Buat Bug Report</button>
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              ><Bug size={14} /> Buat Bug Report</button>
             )}
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setShowPlaywright(true)}
               title="Generate Playwright script dari test case ini"
-              style={{ background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.4)', color: '#a78bfa' }}
+              style={{ background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.4)', color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              🎭 Generate Playwright
+              <Code2 size={14} /> Generate Playwright
             </button>
-            <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Edit</button>
-            <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+            <button className="btn btn-secondary btn-sm" onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Edit3 size={14} /> Edit</button>
+            <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
           </div>
         </div>
 

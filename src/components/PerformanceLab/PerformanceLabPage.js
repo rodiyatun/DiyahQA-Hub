@@ -2,6 +2,12 @@ import TutorialPanel from '../TutorialPanel';
 import React, { useState } from 'react';
 import { ACADEMY_MODULES, PERFORMANCE_CHECKLIST, PERFORMANCE_CHALLENGES } from './performanceData';
 import { analyzeK6Report, generateK6Script, compareTrends } from './performanceUtils';
+import { 
+  GraduationCap, Zap, Search, TrendingUp, CheckSquare, Trophy, Settings, Link, Activity, Flame, 
+  Waves, Ruler, Copy, Play, Database, FileText, CheckCircle2, AlertTriangle, XCircle, BarChart2,
+  ArrowRight, ArrowUp, ArrowDown, Save, Trash2, RotateCcw, Check, ArrowLeft
+} from 'lucide-react';
+import { isWeb } from '../../utils/platform';
 import './PerformanceLab.css';
 
 // ── Tab: Performance Academy ──────────────────────────────────────────────────
@@ -90,11 +96,11 @@ function LessonView({ lesson }) {
 
 // ── Tab: Scenario Builder + k6 Generator ─────────────────────────────────────
 const SCENARIO_TYPES = [
-  { id: 'load',     icon: '📈', label: 'Load Test',  desc: 'Beban normal/peak' },
-  { id: 'stress',   icon: '💥', label: 'Stress Test', desc: 'Temukan batas sistem' },
-  { id: 'spike',    icon: '⚡', label: 'Spike Test',  desc: 'Lonjakan tiba-tiba' },
-  { id: 'soak',     icon: '🏊', label: 'Soak Test',   desc: 'Durasi panjang' },
-  { id: 'baseline', icon: '📏', label: 'Baseline',    desc: 'Rekam referensi awal' },
+  { id: 'load',     icon: <Activity size={18} className="icon-blue" />, label: 'Load Test',  desc: 'Beban normal/peak' },
+  { id: 'stress',   icon: <Flame size={18} className="icon-red" />, label: 'Stress Test', desc: 'Temukan batas sistem' },
+  { id: 'spike',    icon: <Zap size={18} className="icon-yellow" />, label: 'Spike Test',  desc: 'Lonjakan tiba-tiba' },
+  { id: 'soak',     icon: <Waves size={18} className="icon-purple" />, label: 'Soak Test',   desc: 'Durasi panjang' },
+  { id: 'baseline', icon: <Ruler size={18} className="icon-green" />, label: 'Baseline',    desc: 'Rekam referensi awal' },
 ];
 
 const emptyEndpoint = { method: 'GET', path: '/api/endpoint', name: '', body: '' };
@@ -109,6 +115,63 @@ function ScenarioBuilderTab() {
   });
   const [script, setScript] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [k6Logs, setK6Logs] = useState([]);
+  const logEndRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!window.ipcRenderer) return;
+    const handleLog = (_, log) => {
+      setK6Logs(prev => [...prev, log]);
+    };
+    window.ipcRenderer.on('k6-log', handleLog);
+    return () => window.ipcRenderer.removeListener('k6-log', handleLog);
+  }, []);
+
+  React.useEffect(() => {
+    if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [k6Logs]);
+
+  async function handleRunK6() {
+    if (!window.ipcRenderer) {
+      alert("Fitur ini hanya berjalan di versi Desktop (Electron).");
+      return;
+    }
+    setK6Logs([]);
+    setIsRunning(true);
+    const res = await window.ipcRenderer.invoke('run-k6-script', script);
+    setIsRunning(false);
+    if (!res.success) {
+      if (res.error) {
+        setK6Logs(prev => [...prev, '\n[ERROR] k6 gagal dijalankan. Pastikan k6 sudah ter-install dan terdaftar di PATH.\nError: ' + res.error]);
+      } else {
+        setK6Logs(prev => [...prev, '\n[ERROR] K6 gagal atau threshold performa tidak terpenuhi (Exit Code: ' + res.code + ').']);
+        
+        const bugData = {
+          project_id: '',
+          title: `[Performance Lab] Load Test Failed: ${scenario.name}`,
+          description: `Performance test "${scenario.name}" gagal memenuhi threshold yang ditentukan atau terdapat script error.\n\nSimulasi URL: ${scenario.baseUrl}`,
+          steps_to_reproduce: '1. Buka Performance Lab\n2. Jalankan skenario: ' + scenario.name,
+          severity: 'High',
+          priority: 'P1',
+          status: 'Open',
+          environment: scenario.baseUrl,
+          expected_behavior: `P95 Threshold < ${scenario.thresholdP95}ms\nError Rate < ${scenario.thresholdErrorRate * 100}%`,
+          actual_behavior: 'Threshold tidak terpenuhi (k6 mengembalikan exit code ' + res.code + ')',
+          module: 'Performance'
+        };
+        
+        try {
+          await window.ipcRenderer.invoke('create-bug-report', bugData);
+          setK6Logs(prev => [...prev, '\n[AI QA] 🤖 Performa tidak sesuai standar. Tiket Bug Report otomatis telah dibuat dan disimpan di sistem!']);
+        } catch (e) {
+          setK6Logs(prev => [...prev, '\n[AI QA] 🤖 Gagal membuat tiket Bug Report.']);
+        }
+      }
+    } else {
+      setK6Logs(prev => [...prev, '\n[SUCCESS] Test selesai dan memenuhi standar performa.']);
+    }
+  }
 
   function set(field, val) { setScenario(p => ({ ...p, [field]: val })); }
 
@@ -140,7 +203,7 @@ function ScenarioBuilderTab() {
         {/* Left: Config */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="builder-card">
-            <h3>⚙️ Konfigurasi Test</h3>
+            <h3><Settings size={18} style={{ marginRight: 6 }}/> Konfigurasi Test</h3>
             <div className="form-group"><label>Nama Test</label>
               <input value={scenario.name} onChange={e => set('name', e.target.value)} />
             </div>
@@ -199,7 +262,7 @@ function ScenarioBuilderTab() {
 
         {/* Right: Endpoints */}
         <div className="builder-card">
-          <h3>🔌 Endpoints</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={18}/> Endpoints</h3>
           <div className="endpoint-list">
             {scenario.endpoints.map((ep, i) => (
               <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -222,18 +285,42 @@ function ScenarioBuilderTab() {
             ))}
           </div>
           <button className="btn btn-secondary btn-sm" style={{ marginTop: 10, width: '100%' }} onClick={addEndpoint}>+ Tambah Endpoint</button>
-          <button className="btn btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={handleGenerate}>⚡ Generate k6 Script</button>
+          <button className="btn btn-primary" style={{ marginTop: 12, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }} onClick={handleGenerate}>
+            <Zap size={16}/> Generate k6 Script
+          </button>
         </div>
       </div>
 
-      {/* Script Output */}
+      {/* Script Output & Runner */}
       {script && (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 16px', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Generated k6 Script</span>
-            <button className="btn btn-secondary btn-sm" onClick={handleCopy}>{copied ? '✅ Copied!' : '📋 Copy'}</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '10px 16px', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Generated k6 Script</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-secondary btn-sm" style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={handleCopy}>
+                  <Copy size={14}/> {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button className="btn btn-primary btn-sm" style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={handleRunK6} disabled={isRunning}>
+                  {isRunning ? '⏳ Running...' : <><Play size={14}/> Run Script Now</>}
+                </button>
+              </div>
+            </div>
+            <div className="code-block" style={{ margin: 0, borderRadius: 0, maxHeight: 400, overflowY: 'auto' }}>{script}</div>
           </div>
-          <div className="code-block" style={{ margin: 0, borderRadius: 0, maxHeight: 400, overflowY: 'auto' }}>{script}</div>
+          
+          {(isRunning || k6Logs.length > 0) && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: '#0d1117' }}>
+              <div style={{ padding: '8px 16px', background: '#161b22', borderBottom: '1px solid #30363d', fontSize: 13, color: '#c9d1d9', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                <span>k6 Terminal</span>
+                {isRunning && <span style={{ color: '#58a6ff' }}>Menjalankan...</span>}
+              </div>
+              <div style={{ padding: 16, maxHeight: 300, overflowY: 'auto', color: '#c9d1d9', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                {k6Logs.join('')}
+                <div ref={logEndRef} />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -263,13 +350,13 @@ function ReportAnalyzerTab() {
     setResult(null);
   }
 
-  const findingIcon = { pass: '✅', warn: '⚠️', fail: '❌' };
+  const findingIcon = { pass: <CheckCircle2 size={16} className="icon-green"/>, warn: <AlertTriangle size={16} className="icon-yellow"/>, fail: <XCircle size={16} className="icon-red"/> };
 
   return (
     <div className="analyzer-layout">
       <div className="builder-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>📊 Input Metrik Hasil Pengujian</h3>
+          <h3 style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><BarChart2 size={16}/> Input Metrik Hasil Pengujian</h3>
           <button className="btn btn-secondary btn-sm" onClick={loadSample}>Muat Contoh Data</button>
         </div>
         <div className="metrics-input-grid">
@@ -287,16 +374,26 @@ function ReportAnalyzerTab() {
             </div>
           ))}
         </div>
-        <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleAnalyze}
-          disabled={!metrics.p95 && !metrics.errorRate}>
-          🔍 Analisis Sekarang
+        <div className="builder-card" style={{ marginTop: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={18}/> Hasil k6 Run (Raw Log)</h3>
+            <textarea
+              className="script-output"
+              rows={6}
+              value={metrics.raw}
+              onChange={e => set('raw', e.target.value)}
+              placeholder="Paste hasil log/JSON dari k6 di sini..."
+            />
+        </div>
+        <button className="btn btn-primary" style={{ marginTop: 16, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={handleAnalyze}
+          disabled={!metrics.p95 && !metrics.errorRate && !metrics.raw}>
+          <Search size={16}/> Analisis Sekarang
         </button>
       </div>
 
       {result && (
         <>
           <div className={`verdict-banner ${result.verdictClass}`}>
-            <span style={{ fontSize: 32 }}>{result.verdict === 'FAIL' ? '❌' : result.verdict === 'PASS' ? '✅' : result.verdict === 'EXCELLENT' ? '🏆' : '⚠️'}</span>
+            <span style={{ fontSize: 32 }}>{result.verdict === 'FAIL' ? <XCircle size={32}/> : result.verdict === 'PASS' ? <CheckCircle2 size={32}/> : result.verdict === 'EXCELLENT' ? <Trophy size={32}/> : <AlertTriangle size={32}/>}</span>
             <div>
               <div className="verdict-label">{result.verdict}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -362,9 +459,9 @@ function TrendDashboardTab() {
   function trendArrow(diff, invertGood = false) {
     if (!diff && diff !== 0) return null;
     const isGood = invertGood ? diff < 0 : diff > 0;
-    if (diff === 0) return <span className="trend-flat">→ 0</span>;
-    if (diff > 0) return <span className={invertGood ? 'trend-up' : 'trend-down'}>↑ +{diff}</span>;
-    return <span className={invertGood ? 'trend-down' : 'trend-up'}>↓ {diff}</span>;
+    if (diff === 0) return <span className="trend-flat"><ArrowRight size={14}/> 0</span>;
+    if (diff > 0) return <span className={invertGood ? 'trend-up' : 'trend-down'}><ArrowUp size={14}/> +{diff}</span>;
+    return <span className={invertGood ? 'trend-down' : 'trend-up'}><ArrowDown size={14}/> {diff}</span>;
   }
 
   return (
@@ -380,14 +477,14 @@ function TrendDashboardTab() {
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{item.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{item.val}</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>{item.arrow}</div>
-              {item.regression && <span className="regression-badge" style={{ marginTop: 6, display: 'inline-block' }}>⚠️ REGRESSION</span>}
+              {item.regression && <span className="regression-badge" style={{ marginTop: 6, display: 'inline-block' }}><AlertTriangle size={12}/> REGRESSION</span>}
             </div>
           ))}
         </div>
       )}
 
       <div className="builder-card">
-        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 12 }}>+ Simpan Hasil Run</h3>
+        <h3 style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Save size={16}/> Simpan Hasil Run</h3>
         <div className="metrics-input-grid">
           <div className="form-group"><label>Label / Release</label>
             <input value={form.label} onChange={e => setForm(p => ({ ...p, label: e.target.value }))} placeholder="v1.2.0 / Sprint 12" />
@@ -408,7 +505,7 @@ function TrendDashboardTab() {
             <input type="number" value={form.vus} onChange={e => setForm(p => ({ ...p, vus: e.target.value }))} />
           </div>
         </div>
-        <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={saveRun}>💾 Simpan Run</button>
+        <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={saveRun}><Save size={14}/> Simpan Run</button>
       </div>
 
       {runs.length > 0 ? (
@@ -430,12 +527,12 @@ function TrendDashboardTab() {
                       {prev && <span className={p95Regress ? 'trend-up' : 'trend-down'} style={{ fontSize: 11 }}>
                         ({r.p95 > prev.p95 ? '+' : ''}{r.p95 - prev.p95}ms)
                       </span>}
-                      {p95Regress && <span className="regression-badge" style={{ marginLeft: 4 }}>REG</span>}
+                      {p95Regress && <span className="regression-badge" style={{ marginLeft: 4 }}><AlertTriangle size={10}/> REG</span>}
                     </td>
                     <td>{r.errorRate ? `${r.errorRate}%` : '—'}</td>
                     <td>{r.rps || '—'}</td>
                     <td>{r.vus || '—'}</td>
-                    <td><button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteRun(r.id)} style={{ color: 'var(--danger)' }}>🗑️</button></td>
+                    <td><button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteRun(r.id)} style={{ color: 'var(--danger)' }}><Trash2 size={16}/></button></td>
                   </tr>
                 );
               })}
@@ -485,14 +582,14 @@ function ChecklistTab() {
         <button className="btn btn-secondary btn-sm" onClick={() => {
           const ids = items.map(i => i.id);
           setChecked(p => { const n = { ...p }; ids.forEach(id => delete n[id]); return n; });
-        }}>Reset</button>
+        }}><RotateCcw size={14}/> Reset</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map(item => (
           <div key={item.id} className={`checklist-item ${checked[item.id] ? 'checked' : ''}`}
             onClick={() => setChecked(p => ({ ...p, [item.id]: !p[item.id] }))}>
-            <div className="checklist-checkbox">{checked[item.id] && '✓'}</div>
+            <div className="checklist-checkbox">{checked[item.id] && <Check size={14}/>}</div>
             <div className="checklist-content">
               <div className="checklist-text">{item.text}</div>
               <div className="checklist-detail">{item.detail}</div>
@@ -531,7 +628,7 @@ function ChallengeTab() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setSelected(null)}>← Kembali</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setSelected(null)}><ArrowLeft size={16}/> Kembali</button>
           <div>
             <span className={`difficulty-badge difficulty-${selected.difficulty}`}>{selected.difficulty.toUpperCase()}</span>
             <h2 style={{ fontSize: 16, color: 'var(--text-primary)', margin: 0 }}>{selected.title}</h2>
@@ -579,12 +676,12 @@ function ChallengeTab() {
         })}
 
         {allAnswered && !score && (
-          <button className="btn btn-primary" onClick={submitQuiz}>📊 Lihat Skor</button>
+          <button className="btn btn-primary" onClick={submitQuiz}><BarChart2 size={16}/> Lihat Skor</button>
         )}
 
         {score && (
           <div className={`verdict-banner ${score.correct === score.total ? 'verdict-excellent' : score.correct >= score.total * 0.7 ? 'verdict-pass' : 'verdict-fail'}`}>
-            <span style={{ fontSize: 32 }}>{score.correct === score.total ? '🏆' : score.correct >= score.total * 0.7 ? '✅' : '📚'}</span>
+            <span style={{ fontSize: 32 }}>{score.correct === score.total ? <Trophy size={32}/> : score.correct >= score.total * 0.7 ? <CheckCircle2 size={32}/> : <GraduationCap size={32}/>}</span>
             <div>
               <div className="verdict-label">{score.correct}/{score.total} Benar</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -620,16 +717,29 @@ function ChallengeTab() {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'academy',   label: '📚 Academy' },
-  { id: 'builder',   label: '⚡ Scenario Builder' },
-  { id: 'analyzer',  label: '🔍 Report Analyzer' },
-  { id: 'trend',     label: '📈 Trend Dashboard' },
-  { id: 'checklist', label: '✅ Checklist' },
-  { id: 'challenge', label: '🏆 Challenge' },
+  { id: 'academy',   label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><GraduationCap size={16}/> Academy</span> },
+  { id: 'builder',   label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Zap size={16}/> Scenario Builder</span> },
+  { id: 'analyzer',  label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Search size={16}/> Report Analyzer</span> },
+  { id: 'trend',     label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><TrendingUp size={16}/> Trend Dashboard</span> },
+  { id: 'checklist', label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><CheckSquare size={16}/> Checklist</span> },
+  { id: 'challenge', label: <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Trophy size={16}/> Challenge</span> },
 ];
 
 export default function PerformanceLabPage() {
   const [tab, setTab] = useState('academy');
+
+  if (isWeb()) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-primary)' }}>
+        <Zap size={48} style={{ color: 'var(--text-muted)', marginBottom: 20 }} />
+        <h2>Fitur Eksklusif Desktop</h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: 500, margin: '16px auto', lineHeight: '1.6' }}>
+          Performance Lab menjalankan *load testing* menggunakan `k6` CLI dan berinteraksi langsung dengan *command line* di sistem lokal Anda.
+          Karena keterbatasan keamanan Web Browser, fitur ini <strong>hanya tersedia di DiyahQA Hub versi Desktop</strong>.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="perflab-container">

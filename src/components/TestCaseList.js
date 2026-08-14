@@ -6,6 +6,12 @@ import GeneratePlaywrightModal from './GeneratePlaywrightModal';
 import DesignPRDPanel from './DesignPRDPanel';
 import TutorialPanel from './TutorialPanel';
 import Papa from 'papaparse';
+import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { BugCategoryBadge } from './BugClassifier';
+import { supabase } from '../lib/supabaseClient';
+import { exportToPDF } from '../utils/pdfExport';
+import { isDesktop } from '../utils/platform';
 import './TestCaseList.css';
 
 const STATUS_OPTIONS = ['Pending', 'Pass', 'Fail', 'Skip', 'Blocked'];
@@ -25,6 +31,16 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [playwrightTC, setPlaywrightTC] = useState(null);
   const [activeTab, setActiveTab] = useState('testcases'); // testcases | design
+  const [showColMenu, setShowColMenu] = useState(false);
+  const [visibleCols, setVisibleCols] = useState({
+    no: true, title: true, module: true, section: false,
+    status: true, note: false, actions: true
+  });
+  function toggleCol(col) { setVisibleCols(p => ({ ...p, [col]: !p[col] })); }
+  const COL_LABELS = { no: 'No', title: 'Title', module: 'Module', section: 'Section', status: 'Status', note: 'Note', actions: 'Actions' };
+
+  const { role, user } = useAuth();
+  const { activeWorkspaceId } = useWorkspace();
 
   useEffect(() => { loadTestcases(); }, [project]);
 
@@ -50,37 +66,82 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
   }, [testcases, search, filterStatus, filterModule, sortField, sortDir]);
 
   async function loadTestcases() {
-    const data = await window.api.getTestcases(project.id);
-    setTestcases(data);
-    setSelected([]);
+    try {
+      let query = supabase
+        .from('testcases')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('created_at', { ascending: false });
+
+      // Include: testcases that belong to active workspace OR have no workspace (legacy data)
+      if (activeWorkspaceId) {
+        query = query.or(`workspace_id.eq.${activeWorkspaceId},workspace_id.is.null`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setTestcases(data || []);
+      setSelected([]);
+    } catch (err) {
+      console.error(err);
+      setTestcases([]);
+    }
   }
 
   async function handleSave(data) {
-    if (editingTC) {
-      await window.api.updateTestcase({ ...data, id: editingTC.id });
-    } else {
-      await window.api.createTestcase({ ...data, project_id: project.id });
+    try {
+      if (editingTC) {
+        const { error } = await supabase.from('testcases').update(data).eq('id', editingTC.id);
+        if (error) throw error;
+      } else {
+        const insertData = {
+          ...data,
+          project_id: project.id,
+          workspace_id: activeWorkspaceId || null,
+          created_by: user?.id || null,
+        };
+        const { error } = await supabase.from('testcases').insert([insertData]);
+        if (error) throw error;
+      }
+      await loadTestcases();
+      setShowModal(false);
+      setEditingTC(null);
+    } catch (err) {
+      alert("Error saving test case: " + err.message);
     }
-    await loadTestcases();
-    setShowModal(false);
-    setEditingTC(null);
   }
 
   async function handleDelete(id) {
     if (!window.confirm('Hapus test case ini?')) return;
-    await window.api.deleteTestcase(id);
-    await loadTestcases();
+    try {
+      const { error } = await supabase.from('testcases').delete().eq('id', id);
+      if (error) throw error;
+      await loadTestcases();
+    } catch (err) {
+      alert("Error deleting test case: " + err.message);
+    }
   }
 
   async function handleBulkDelete() {
     if (!window.confirm(`Hapus ${selected.length} test case?`)) return;
-    for (const id of selected) await window.api.deleteTestcase(id);
-    await loadTestcases();
+    try {
+      for (const id of selected) {
+        await supabase.from('testcases').delete().eq('id', id);
+      }
+      await loadTestcases();
+    } catch (err) {
+      alert("Error deleting test cases: " + err.message);
+    }
   }
 
   async function handleStatusChange(tc, newStatus) {
-    await window.api.updateTestcase({ ...tc, status: newStatus });
-    await loadTestcases();
+    try {
+      const { error } = await supabase.from('testcases').update({ status: newStatus }).eq('id', tc.id);
+      if (error) throw error;
+      await loadTestcases();
+    } catch (err) {
+      alert("Error updating status: " + err.message);
+    }
   }
 
   async function handleImport() {
@@ -153,6 +214,18 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
     });
   }
 
+  async function handleExportPDF() {
+    const headers = ['No', 'Module', 'Title', 'Scenario', 'Status'];
+    const body = filtered.map(tc => [
+      tc.no || '-',
+      tc.module || '-',
+      tc.title || '-',
+      tc.scenario || '-',
+      tc.status || '-'
+    ]);
+    exportToPDF(`${project.name} - Test Cases Report`, headers, body, `${project.name}-testcases.pdf`);
+  }
+
   async function handleAIGeneratorInsert(generatedTCs) {
     let count = 0;
     for (const tc of generatedTCs) {
@@ -223,18 +296,25 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           </div>
           <TutorialPanel menuKey={activeTab === 'design' ? 'designprd' : 'testcases'} />
           {activeTab === 'testcases' && (<>
-          <button className="btn btn-secondary btn-sm" onClick={handleImport}>
-            📥 Import CSV
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={handleImportAllure}>
-            🧪 Import Allure
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
-            📤 Export CSV
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={handleExportAllure}>
-            🧪 Export Allure
-          </button>
+          {isDesktop() && (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={handleImport}>
+                📥 Import CSV
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleImportAllure}>
+                🧪 Import Allure
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
+                📤 Export CSV
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>
+                📄 Export PDF
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleExportAllure}>
+                🧪 Export Allure
+              </button>
+            </>
+          )}
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => setShowAIGenerator(true)}
@@ -242,9 +322,11 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           >
             🤖 AI Generate TC
           </button>
+          {role !== 'viewer' && (
           <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
             + Tambah TC
           </button>
+          )}
           </>)}
         </div>
       </div>
@@ -290,12 +372,43 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
           <option value="">All Module</option>
           {modules.map(m => <option key={m}>{m}</option>)}
         </select>
-        {selected.length > 0 && (
+        {selected.length > 0 && role === 'admin' && (
           <button className="btn btn-danger btn-sm" onClick={handleBulkDelete}>
             🗑️ Delete ({selected.length})
           </button>
         )}
         <span className="tc-count">{filtered.length} TC</span>
+
+        {/* Column toggle */}
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowColMenu(v => !v)}
+            title="Show/Hide columns"
+          >⊞ Kolom</button>
+          {showColMenu && (
+            <div style={{
+              position: 'absolute', top: '110%', right: 0, background: 'var(--bg-secondary, #1e293b)',
+              border: '1px solid var(--border)', borderRadius: 8, padding: '8px 0',
+              zIndex: 50, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 150
+            }}>
+              {Object.keys(COL_LABELS).map(col => (
+                <label key={col} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 16px', cursor: 'pointer', fontSize: 13,
+                  color: 'var(--text-primary)'
+                }}>
+                  <input
+                    type="checkbox" checked={visibleCols[col]}
+                    onChange={() => toggleCol(col)}
+                    style={{ width: 'auto', accentColor: '#6366f1' }}
+                  />
+                  {COL_LABELS[col]}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -311,13 +424,13 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
                   style={{ width: 'auto', cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ width: 70 }}>No</th>
-              <th>Title</th>
-              <th style={{ width: 110 }}>Module</th>
-              <th style={{ width: 120 }}>Section</th>
-              <th style={{ width: 110 }}>Status</th>
-              <th style={{ width: 100 }}>Note</th>
-              <th style={{ width: 80 }}>Actions</th>
+              {visibleCols.no      && <th style={{ width: 70 }}>No</th>}
+              {visibleCols.title   && <th>Title</th>}
+              {visibleCols.module  && <th style={{ width: 110 }}>Module</th>}
+              {visibleCols.section && <th style={{ width: 120 }}>Section</th>}
+              {visibleCols.status  && <th style={{ width: 110 }}>Status</th>}
+              {visibleCols.note    && <th style={{ width: 100 }}>Note</th>}
+              {visibleCols.actions && <th style={{ width: 80 }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -344,49 +457,57 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
                     style={{ width: 'auto', cursor: 'pointer' }}
                   />
                 </td>
-                <td className="tc-no">{tc.no || '—'}</td>
-                <td className="tc-title">{tc.title}</td>
-                <td className="tc-module">{tc.module || '—'}</td>
-                <td className="tc-section">{tc.section || '—'}</td>
-                <td onClick={e => e.stopPropagation()}>
-                  <select
-                    className={`status-select status-${tc.status?.toLowerCase()}`}
-                    value={tc.status}
-                    onChange={e => handleStatusChange(tc, e.target.value)}
-                  >
-                    {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td className="tc-note">{tc.note || '—'}</td>
-                <td onClick={e => e.stopPropagation()}>
-                  <div className="tc-actions">
-                    {tc.status === 'Fail' && onCreateBugFromTC && (
+                {visibleCols.no      && <td className="tc-no">{tc.no || '—'}</td>}
+                {visibleCols.title   && <td className="tc-title">{tc.title}</td>}
+                {visibleCols.module  && <td className="tc-module">{tc.module || '—'}</td>}
+                {visibleCols.section && <td className="tc-section">{tc.section || '—'}</td>}
+                {visibleCols.status  && (
+                  <td onClick={e => e.stopPropagation()}>
+                    <select
+                      className={`status-select status-${tc.status?.toLowerCase()}`}
+                      value={tc.status}
+                      onChange={e => handleStatusChange(tc, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </td>
+                )}
+                {visibleCols.note    && <td className="tc-note">{tc.note || '—'}</td>}
+                {visibleCols.actions && (
+                  <td onClick={e => e.stopPropagation()}>
+                    <div className="tc-actions">
+                      {tc.status === 'Fail' && onCreateBugFromTC && (
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={(e) => { e.stopPropagation(); onCreateBugFromTC(tc); }}
+                          title="Buat Bug Report"
+                          style={{ color: '#ef4444' }}
+                        >🐛</button>
+                      )}
                       <button
                         className="btn btn-ghost btn-icon btn-sm"
-                        onClick={(e) => { e.stopPropagation(); onCreateBugFromTC(tc); }}
-                        title="Buat Bug Report"
-                        style={{ color: '#ef4444' }}
-                      >🐛</button>
-                    )}
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={(e) => { e.stopPropagation(); setPlaywrightTC(tc); }}
-                      title="Generate Playwright script"
-                      style={{ color: '#a78bfa' }}
-                    >🎭</button>
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={() => { setEditingTC(tc); setShowModal(true); }}
-                      title="Edit"
-                    >✏️</button>
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      onClick={() => handleDelete(tc.id)}
-                      title="Delete"
-                      style={{ color: 'var(--danger)' }}
-                    >🗑️</button>
-                  </div>
-                </td>
+                        onClick={(e) => { e.stopPropagation(); setPlaywrightTC(tc); }}
+                        title="Generate Playwright script"
+                        style={{ color: '#a78bfa' }}
+                      >🎭</button>
+                      {role !== 'viewer' && (
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => { setEditingTC(tc); setShowModal(true); }}
+                        title="Edit"
+                      >✏️</button>
+                      )}
+                      {role === 'admin' && (
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleDelete(tc.id)}
+                        title="Delete"
+                        style={{ color: 'var(--danger)' }}
+                      >🗑️</button>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

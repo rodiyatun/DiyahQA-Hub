@@ -1,4 +1,6 @@
 // ─── Rule-based AI Script Generator ──────────────────────────────────────────
+import React from 'react';
+import { Clock, Target, Globe, CheckCircle, Lock, Map, Dices, Search } from 'lucide-react';
 
 export function generateFromRequirement(req) {
   const { url, title, steps, expectedResult, type, pageName } = req;
@@ -137,32 +139,32 @@ export function analyzePlaywrightError(errorLog) {
   const suggestions = [];
 
   if (log.includes('timeout') && log.includes('locator')) {
-    suggestions.push({ icon: '⏱️', title: 'Timeout pada Locator', desc: 'Elemen tidak ditemukan dalam waktu yang ditentukan.', fix: 'Tambahkan waitForSelector() atau gunakan locator yang lebih spesifik. Cek apakah elemen benar-benar ada di halaman.' });
+    suggestions.push({ icon: <Clock size={20}/>, title: 'Timeout pada Locator', desc: 'Elemen tidak ditemukan dalam waktu yang ditentukan.', fix: 'Tambahkan waitForSelector() atau gunakan locator yang lebih spesifik. Cek apakah elemen benar-benar ada di halaman.' });
   }
   if (log.includes('strict mode violation')) {
-    suggestions.push({ icon: '🎯', title: 'Selector Ambigu', desc: 'Locator menemukan lebih dari satu elemen.', fix: 'Gunakan selector yang lebih spesifik: getByRole(), getByTestId(), atau tambahkan .first() / .nth(0).' });
+    suggestions.push({ icon: <Target size={20}/>, title: 'Selector Ambigu', desc: 'Locator menemukan lebih dari satu elemen.', fix: 'Gunakan selector yang lebih spesifik: getByRole(), getByTestId(), atau tambahkan .first() / .nth(0).' });
   }
   if (log.includes('net::err_connection_refused') || log.includes('econnrefused')) {
-    suggestions.push({ icon: '🌐', title: 'Koneksi Ditolak', desc: 'Server tidak bisa diakses.', fix: 'Pastikan aplikasi berjalan di URL yang benar. Cek baseURL di playwright.config.ts.' });
+    suggestions.push({ icon: <Globe size={20}/>, title: 'Koneksi Ditolak', desc: 'Server tidak bisa diakses.', fix: 'Pastikan aplikasi berjalan di URL yang benar. Cek baseURL di playwright.config.ts.' });
   }
   if (log.includes('expect(received).tobe(expected)') || log.includes('tobehavetext') || log.includes('received') && log.includes('expected')) {
-    suggestions.push({ icon: '✅', title: 'Assertion Gagal', desc: 'Nilai yang diterima tidak sesuai ekspektasi.', fix: 'Cek apakah data test sudah benar. Gunakan toHaveText() dengan exact: false untuk partial match.' });
+    suggestions.push({ icon: <CheckCircle size={20}/>, title: 'Assertion Gagal', desc: 'Nilai yang diterima tidak sesuai ekspektasi.', fix: 'Cek apakah data test sudah benar. Gunakan toHaveText() dengan exact: false untuk partial match.' });
   }
   if (log.includes('401') || log.includes('403') || log.includes('unauthorized')) {
-    suggestions.push({ icon: '🔐', title: 'Auth Error', desc: 'Request tidak terotorisasi.', fix: 'Pastikan token/cookie valid. Gunakan storageState di playwright.config.ts untuk menyimpan session.' });
+    suggestions.push({ icon: <Lock size={20}/>, title: 'Auth Error', desc: 'Request tidak terotorisasi.', fix: 'Pastikan token/cookie valid. Gunakan storageState di playwright.config.ts untuk menyimpan session.' });
   }
   if (log.includes('navigation failed') || log.includes('net::err_name_not_resolved')) {
-    suggestions.push({ icon: '🗺️', title: 'URL Tidak Valid', desc: 'Gagal navigasi ke URL yang diberikan.', fix: 'Periksa URL di test atau baseURL di config. Pastikan DNS bisa resolve domain.' });
+    suggestions.push({ icon: <Map size={20}/>, title: 'URL Tidak Valid', desc: 'Gagal navigasi ke URL yang diberikan.', fix: 'Periksa URL di test atau baseURL di config. Pastikan DNS bisa resolve domain.' });
   }
   if (log.includes('browsertype.launch') || log.includes('executable doesn')) {
-    suggestions.push({ icon: '🌐', title: 'Browser Tidak Terinstall', desc: 'Playwright tidak menemukan browser executable.', fix: 'Jalankan: npx playwright install chromium' });
+    suggestions.push({ icon: <Globe size={20}/>, title: 'Browser Tidak Terinstall', desc: 'Playwright tidak menemukan browser executable.', fix: 'Jalankan: npx playwright install chromium' });
   }
   if (log.includes('flaky') || (log.includes('passed') && log.includes('retry'))) {
-    suggestions.push({ icon: '🎲', title: 'Flaky Test', desc: 'Test tidak stabil — kadang lulus kadang gagal.', fix: 'Tambahkan waitForLoadState("networkidle") atau waitFor condition spesifik. Hindari sleep() statis.' });
+    suggestions.push({ icon: <Dices size={20}/>, title: 'Flaky Test', desc: 'Test tidak stabil — kadang lulus kadang gagal.', fix: 'Tambahkan waitForLoadState("networkidle") atau waitFor condition spesifik. Hindari sleep() statis.' });
   }
 
   if (suggestions.length === 0) {
-    suggestions.push({ icon: '🔍', title: 'Error Tidak Dikenali', desc: 'Tidak ada pattern yang cocok.', fix: 'Cek baris error utama di log. Buka Playwright trace dengan: npx playwright show-trace trace.zip' });
+    suggestions.push({ icon: <Search size={20}/>, title: 'Error Tidak Dikenali', desc: 'Tidak ada pattern yang cocok.', fix: 'Cek baris error utama di log. Buka Playwright trace dengan: npx playwright show-trace trace.zip' });
   }
 
   return suggestions;

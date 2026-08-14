@@ -40,8 +40,8 @@ Jawab HANYA dengan JSON array yang valid, tanpa penjelasan tambahan.`,
   return parseJsonFromLLM(content);
 }
 
-async function callGemini(apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+export async function callGemini(apiKey, prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
   const systemInstruction = `Kamu adalah QA Engineer senior. Generate test case dalam format JSON array.
 Setiap test case harus memiliki field: title, module, section, scenario, expected_result, note, status.
 - title: nama test case yang deskriptif
@@ -70,6 +70,108 @@ Jawab HANYA dengan JSON array yang valid, tanpa markdown code block, tanpa penje
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   return parseJsonFromLLM(content);
+}
+
+async function callGeminiMultimodal(apiKey, prompt, imageBase64) {
+  const modelsToTry = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-pro-latest',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash'
+  ];
+
+  const systemInstruction = `Kamu adalah QA Engineer senior.
+Tugas Anda adalah membaca gambar antarmuka (UI) dari Figma dan dokumen PRD, lalu menghasilkan Test Case Manual dan Script Playwright Automation sekaligus.
+
+Output HANYA dalam format JSON object valid tanpa markdown block (\`\`\`), dengan struktur:
+{
+  "testcases": [
+    {
+      "title": "...", "module": "...", "section": "...", "scenario": "...",
+      "expected_result": "...", "note": "Positive Case / Negative Case", "status": "Pending"
+    }
+  ],
+  "playwright_script": "import { test, expect } from '@playwright/test';\\n\\ntest('...'"
+}
+Pastikan playwright_script lolos validasi Typescript dan menggunakan locator yang sesuai dengan UI yang ada di gambar. JSON HARUS VALID.`;
+
+  const parts = [{ text: `${systemInstruction}\n\n${prompt}` }];
+  if (imageBase64) {
+    const mime = imageBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+    const data = imageBase64.split(',')[1];
+    if (data) parts.push({ inlineData: { mimeType: mime, data } });
+  }
+
+  const payload = {
+    contents: [{ role: 'user', parts }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
+  };
+
+  let lastError;
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        lastError = new Error(err.error?.message || `Gemini error: HTTP ${response.status}`);
+        // If the error is about model not found, continue to next model
+        if (lastError.message.includes('not found') || lastError.message.includes('not supported')) {
+          continue;
+        }
+        throw lastError; // other errors like auth failed should abort immediately
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      let clean = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+      try {
+        return JSON.parse(clean);
+      } catch(e) {
+        const firstBrace = clean.indexOf('{');
+        const lastBrace = clean.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          try { return JSON.parse(clean.slice(firstBrace, lastBrace + 1)); } catch {}
+        }
+        throw new Error('LLM tidak mengembalikan JSON yang valid.');
+      }
+    } catch (err) {
+      lastError = err;
+      if (err.message.includes('not found') || err.message.includes('not supported')) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  
+  throw lastError || new Error("Semua model Gemini gagal dijalankan.");
+}
+
+async function checkGeminiModels(apiKey) {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const data = await res.json();
+    if (data.models) {
+      const supported = data.models
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''))
+        .join(', ');
+      alert(`Model yang tersedia di API Key Anda:\n${supported}`);
+    } else {
+      alert(`Gagal cek model: ${JSON.stringify(data)}`);
+    }
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
 }
 
 function parseJsonFromLLM(content) {
@@ -185,7 +287,12 @@ export default function AITestCaseGenerator({ project, onInsert, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState([]);
-  const [mode, setMode] = useState('guided'); // guided | custom | offline
+  const [mode, setMode] = useState('guided'); // guided | custom | offline | figma_prd
+
+  // State for Figma + PRD mode
+  const [imageBase64, setImageBase64] = useState('');
+  const [playwrightScript, setPlaywrightScript] = useState('');
+  const [figmaForm, setFigmaForm] = useState({ prdText: '', count: 5, constraints: '' });
 
   function setField(k, v) {
     setForm(p => ({ ...p, [k]: v }));
@@ -233,6 +340,33 @@ Format output: JSON array`;
       return;
     }
 
+    if (mode === 'figma_prd') {
+      if (!imageBase64) return setError('Gambar belum di-paste');
+      if (!apiKey.trim()) return setError('API Key belum diisi');
+      if (provider !== 'gemini') return setError('Mode ini HANYA mendukung Gemini. Silakan pilih tab Gemini dan masukkan API key-nya.');
+      
+      setLoading(true); setError(''); setResults([]); setPlaywrightScript('');
+      try {
+        const prompt = `Jumlah test case: ${figmaForm.count}\nBatasan: ${figmaForm.constraints}\nPRD:\n${figmaForm.prdText}`;
+        const res = await callGeminiMultimodal(apiKey, prompt, imageBase64);
+        
+        const normalized = (res.testcases || []).map(tc => ({
+          title: tc.title || '', module: tc.module || form.module || '', section: tc.section || '',
+          scenario: tc.scenario || '', expected_result: tc.expected_result || '',
+          note: tc.note || 'Positive Case', status: 'Pending',
+        })).filter(tc => tc.title?.trim());
+
+        setResults(normalized);
+        setSelected(normalized.map((_, i) => i));
+        setPlaywrightScript(res.playwright_script || '');
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const prompt = buildPrompt();
     if (!prompt.trim()) return setError('Prompt wajib diisi');
     if (!apiKey.trim()) return setError('API Key belum diisi');
@@ -276,9 +410,34 @@ Format output: JSON array`;
     setSelected(p => p.length === results.length ? [] : results.map((_, i) => i));
   }
 
-  function handleInsert() {
+  async function handleInsert() {
     const toInsert = results.filter((_, i) => selected.includes(i));
     onInsert(toInsert);
+    
+    // Save playwright script if available
+    if (playwrightScript && project) {
+      try {
+        const timestamp = new Date().getTime();
+        const filename = `tests/figma_generated_${timestamp}.spec.ts`;
+        await window.api.waWriteFile({ projPath: project.path, filePath: filename, content: playwrightScript });
+        // Optional success visual feedback could be added here
+      } catch(e) {
+        console.error("Gagal simpan script:", e);
+      }
+    }
+  }
+
+  function handlePaste(e) {
+    if (mode !== 'figma_prd') return;
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = (event) => setImageBase64(event.target.result);
+        reader.readAsDataURL(file);
+      }
+    }
   }
 
   const TEST_TYPES = [
@@ -309,6 +468,7 @@ Format output: JSON array`;
               { id: 'guided',  label: '📋 Guided' },
               { id: 'custom',  label: '✍️ Custom Prompt' },
               { id: 'offline', label: '⚡ Offline (rule-based)' },
+              { id: 'figma_prd', label: '🎨 Figma + PRD' },
             ].map(m => (
               <button key={m.id}
                 className={`btn btn-sm ${mode === m.id ? 'btn-primary' : 'btn-secondary'}`}
@@ -344,6 +504,11 @@ Format output: JSON array`;
                   placeholder={provider === 'openai' ? 'sk-proj-...' : 'AIza...'}
                   style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
                 />
+                {provider === 'gemini' && (
+                  <button className="btn btn-sm btn-secondary" onClick={() => checkGeminiModels(apiKey)} title="Cek Model yang Tersedia">
+                    🔍 Cek Model
+                  </button>
+                )}
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
                   {provider === 'openai'
                     ? '→ platform.openai.com/api-keys'
@@ -354,6 +519,42 @@ Format output: JSON array`;
           )}
 
           {/* Form input */}
+          {mode === 'figma_prd' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div 
+                onPaste={handlePaste} 
+                style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 20, textAlign: 'center', background: 'var(--bg-secondary)', cursor: 'text' }}
+                tabIndex={0}
+              >
+                {imageBase64 ? (
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img src={imageBase64} alt="Pasted figma" style={{ maxHeight: 200, maxWidth: '100%', objectFit: 'contain', borderRadius: 8 }} />
+                    <button className="btn btn-sm btn-icon" onClick={(e) => { e.stopPropagation(); setImageBase64(''); }} style={{ position: 'absolute', top: -10, right: -10, background: '#ef4444', color: 'white', borderRadius: '50%' }}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>🖼️</div>
+                    <div style={{ fontSize: 13 }}>Klik area ini, lalu Paste (Ctrl+V / Cmd+V) gambar/screenshot antarmuka dari Figma</div>
+                  </div>
+                )}
+              </div>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Jumlah Test Case</label>
+                  <input type="number" min="1" max="20" value={figmaForm.count} onChange={e => setFigmaForm(p => ({...p, count: e.target.value}))} />
+                </div>
+                <div className="form-group" style={{ flex: 2 }}>
+                  <label>Batasan (Constraints)</label>
+                  <input value={figmaForm.constraints} onChange={e => setFigmaForm(p => ({...p, constraints: e.target.value}))} placeholder="misal: Fokus ke validasi form saja" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Dokumen PRD (Teks)</label>
+                <textarea rows={4} value={figmaForm.prdText} onChange={e => setFigmaForm(p => ({...p, prdText: e.target.value}))} placeholder="Paste requirements / spesifikasi produk di sini..." />
+              </div>
+            </div>
+          )}
+
           {mode === 'guided' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="form-row">

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { API_LESSONS, HTTP_METHODS, STATUS_CODE_MAP } from './apiData';
 import { runAssertions, generatePlaywrightTest, generateTestSuite, generateDataDrivenTest, parseOpenAPI, formatJson, formatSize, statusClass, parsePostmanCollection } from './apiUtils';
 import TutorialPanel from '../TutorialPanel';
+import { isWeb } from '../../utils/platform';
+import { Globe } from 'lucide-react';
 import './APILab.css';
 
 // ─── Shared: JSON Viewer ──────────────────────────────────────────────────────
@@ -954,6 +956,19 @@ export default function APILabPage() {
     } catch { return []; }
   });
   const [loadedRequest, setLoadedRequest] = useState(null);
+
+  if (isWeb()) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-primary)' }}>
+        <Globe size={48} style={{ color: 'var(--text-muted)', marginBottom: 20 }} />
+        <h2>Fitur Eksklusif Desktop</h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: 500, margin: '16px auto', lineHeight: '1.6' }}>
+          API Lab membutuhkan interaksi langsung dengan Newman (Postman CLI) dan akses *network* tanpa batasan CORS di sistem lokal Anda.
+          Karena keterbatasan keamanan Web Browser, fitur ini <strong>hanya tersedia di DiyahQA Hub versi Desktop</strong>.
+        </p>
+      </div>
+    );
+  }
 
   function handleLoadRequest(req) {
     setLoadedRequest(req);

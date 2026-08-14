@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ─── Extract Figma URL dari teks ──────────────────────────────────────────────
 function extractFigmaUrls(text) {
@@ -10,15 +10,6 @@ function extractFigmaUrls(text) {
 
 function toFigmaEmbedUrl(url) {
   return `https://www.figma.com/embed?embed_host=diyahqa&url=${encodeURIComponent(url)}`;
-}
-
-// ─── Storage per project ──────────────────────────────────────────────────────
-function loadLinks(projectId) {
-  try { return JSON.parse(localStorage.getItem(`design_prd_links_${projectId}`) || '[]'); }
-  catch { return []; }
-}
-function saveLinks(projectId, links) {
-  localStorage.setItem(`design_prd_links_${projectId}`, JSON.stringify(links));
 }
 
 // ─── Figma fullscreen embed ───────────────────────────────────────────────────
@@ -66,26 +57,96 @@ function FigmaEmbed({ url, onClose }) {
   );
 }
 
+// ─── Diff Modal ───────────────────────────────────────────────────────────────
+function DiffModal({ link, histories, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 700, width: '100%', maxHeight: '90vh' }}>
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">Riwayat Perubahan (Sejak Terakhir Dilihat)</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>{link.label}</p>
+          </div>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 16, overflowY: 'auto', maxHeight: 'calc(90vh - 120px)' }}>
+          {histories.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 20 }}>Tidak ada riwayat perubahan.</div>
+          ) : (
+            histories.map(h => (
+              <div key={h.id} style={{ marginBottom: 20, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '8px 12px', fontSize: 12, fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
+                  Tanggal: {new Date(h.changed_at).toLocaleString('id-ID')}
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-card)' }}>
+                      <th style={{ padding: 8, borderBottom: '1px solid var(--border)', textAlign: 'left', width: '20%' }}>Field</th>
+                      <th style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', textAlign: 'left', width: '40%' }}>Data Lama</th>
+                      <th style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', textAlign: 'left', width: '40%' }}>Data Baru</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(h.diff).map(([key, value]) => (
+                      <tr key={key}>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid var(--border)', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {key === 'label' ? 'Nama Fitur' : key === 'prdUrl' ? 'Link PRD' : key === 'figmaUrl' ? 'Link Figma' : 'Catatan'}
+                        </td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', wordBreak: 'break-all' }}>
+                          <del>{value.old || '-'}</del>
+                        </td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: 'rgba(34, 197, 94, 0.1)', color: '#4ade80', wordBreak: 'break-all' }}>
+                          {value.new || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-primary" onClick={onClose}>✓ Tandai Telah Dibaca & Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Link Card ────────────────────────────────────────────────────────────────
-function LinkCard({ link, onDelete, onOpenFigma }) {
+function LinkCard({ link, isUpdated, onEdit, onDelete, onOpenFigma, onOpenDiff }) {
   const isFigma = link.figmaUrl?.trim();
   const isPRD = link.prdUrl?.trim();
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-card)', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-card)', overflow: 'hidden', position: 'relative' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {link.label || 'Untitled'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {link.label || 'Untitled'}
+            </div>
           </div>
           {link.note && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{link.note}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{link.note}</div>
           )}
         </div>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={onDelete}
-          style={{ color: 'var(--danger)', flexShrink: 0 }}>🗑️</button>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onEdit} title="Edit">✏️</button>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onDelete} title="Hapus" style={{ color: 'var(--danger)' }}>🗑️</button>
+        </div>
       </div>
+
+      {isUpdated && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '6px 14px', borderBottom: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>🔴 Diperbarui</span>
+          <button onClick={onOpenDiff} style={{ background: 'none', border: 'none', color: '#60a5fa', fontSize: 11, cursor: 'pointer', padding: 0 }}>
+            Lihat Perubahan
+          </button>
+        </div>
+      )}
 
       <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {/* PRD link */}
@@ -136,28 +197,27 @@ function LinkCard({ link, onDelete, onOpenFigma }) {
   );
 }
 
-// ─── Add Link Form ────────────────────────────────────────────────────────────
-function AddLinkForm({ onAdd, onCancel }) {
-  const [form, setForm] = useState({ label: '', prdUrl: '', figmaUrl: '', note: '' });
+// ─── Add/Edit Link Form ───────────────────────────────────────────────────────
+function AddLinkForm({ onSave, onCancel, initialData }) {
+  const [form, setForm] = useState(initialData || { label: '', prdUrl: '', figmaUrl: '', note: '' });
 
   function set(k, v) { setForm(p => ({ ...p, [k]: v })); }
 
-  function handleAdd() {
+  function handleSave() {
     if (!form.label.trim() && !form.prdUrl.trim() && !form.figmaUrl.trim()) return;
-    onAdd({
-      id: Date.now(),
+    onSave({
+      id: initialData?.id || Date.now(),
       label: form.label.trim() || 'Untitled',
       prdUrl: form.prdUrl.trim(),
       figmaUrl: form.figmaUrl.trim(),
       note: form.note.trim(),
-      createdAt: new Date().toISOString(),
     });
   }
 
   return (
     <div style={{ border: '1px solid rgba(99,102,241,0.4)', borderRadius: 10, background: 'var(--bg-card)', padding: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-        ➕ Tambah Referensi Design & PRD
+        {initialData ? '✏️ Edit Referensi Design & PRD' : '➕ Tambah Referensi Design & PRD'}
       </div>
       <div className="form-group">
         <label>Label / Nama Fitur *</label>
@@ -168,17 +228,11 @@ function AddLinkForm({ onAdd, onCancel }) {
         <label>Link PRD (Plane Issue URL)</label>
         <input value={form.prdUrl} onChange={e => set('prdUrl', e.target.value)}
           placeholder="https://workspace.jobseeker.company/jsc/browse/TECHS-4854/" />
-        <small style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-          Copy URL issue Plane langsung dari browser
-        </small>
       </div>
       <div className="form-group">
         <label>Link Figma</label>
         <textarea rows={2} value={form.figmaUrl} onChange={e => set('figmaUrl', e.target.value)}
           placeholder="https://www.figma.com/design/...&#10;Bisa paste lebih dari satu URL, satu per baris" />
-        <small style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-          File harus di-set "Anyone with the link can view" untuk bisa di-preview
-        </small>
       </div>
       <div className="form-group">
         <label>Catatan (opsional)</label>
@@ -186,7 +240,7 @@ function AddLinkForm({ onAdd, onCancel }) {
           placeholder="Sprint 23, v2.0, dll" />
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary btn-sm" onClick={handleAdd}>💾 Simpan</button>
+        <button className="btn btn-primary btn-sm" onClick={handleSave}>💾 Simpan</button>
         <button className="btn btn-secondary btn-sm" onClick={onCancel}>Batal</button>
       </div>
     </div>
@@ -195,31 +249,110 @@ function AddLinkForm({ onAdd, onCancel }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DesignPRDPanel({ project }) {
-  const [links, setLinks] = useState(() => loadLinks(project?.id));
+  const [data, setData] = useState({ links: [], history: [] });
   const [showForm, setShowForm] = useState(false);
+  const [editingLink, setEditingLink] = useState(null);
   const [selectedFigma, setSelectedFigma] = useState(null);
+  const [diffModalLink, setDiffModalLink] = useState(null);
   const [search, setSearch] = useState('');
+  const [lastViewed, setLastViewed] = useState(Date.now());
 
-  function handleAdd(link) {
-    const updated = [link, ...links];
-    setLinks(updated);
-    saveLinks(project?.id, updated);
+  const lastViewedKey = `design_prd_last_viewed_${project?.id || 'default'}`;
+
+  useEffect(() => {
+    // Load last viewed
+    const storedLV = localStorage.getItem(lastViewedKey);
+    const lvTime = storedLV ? parseInt(storedLV, 10) : Date.now();
+    setLastViewed(lvTime);
+    
+    // Automatically set last viewed to now when opening the tab
+    localStorage.setItem(lastViewedKey, Date.now().toString());
+
+    if (project?.path) {
+      window.api.waGetDesignLinks(project.path).then(res => {
+        let loadedData = res || { links: [], history: [] };
+        
+        // Migrate legacy localStorage links if workspace is empty
+        if (!loadedData.links?.length) {
+          try {
+            const local = JSON.parse(localStorage.getItem(`design_prd_links_${project.id}`) || '[]');
+            if (local.length > 0) {
+              const migratedLinks = local.map(l => ({ ...l, updated_at: l.createdAt || new Date().toISOString() }));
+              loadedData = { links: migratedLinks, history: [] };
+              window.api.waSaveDesignLinks(project.path, loadedData);
+              localStorage.removeItem(`design_prd_links_${project.id}`);
+            }
+          } catch(e) {}
+        }
+        
+        setData({ links: loadedData.links || [], history: loadedData.history || [] });
+      });
+    }
+  }, [project]);
+
+  function handleSaveLink(newLink) {
+    const updatedLinks = [...data.links];
+    const updatedHistory = [...data.history];
+    const existingIdx = updatedLinks.findIndex(l => l.id === newLink.id);
+    
+    const nowIso = new Date().toISOString();
+    
+    if (existingIdx >= 0) {
+      const oldLink = updatedLinks[existingIdx];
+      const diff = {};
+      if (oldLink.prdUrl !== newLink.prdUrl) diff.prdUrl = { old: oldLink.prdUrl, new: newLink.prdUrl };
+      if (oldLink.figmaUrl !== newLink.figmaUrl) diff.figmaUrl = { old: oldLink.figmaUrl, new: newLink.figmaUrl };
+      if (oldLink.label !== newLink.label) diff.label = { old: oldLink.label, new: newLink.label };
+      if (oldLink.note !== newLink.note) diff.note = { old: oldLink.note, new: newLink.note };
+      
+      if (Object.keys(diff).length > 0) {
+        newLink.updated_at = nowIso;
+        updatedHistory.unshift({
+          id: 'hist_' + Date.now(),
+          link_id: newLink.id,
+          changed_at: nowIso,
+          diff
+        });
+      } else {
+        newLink.updated_at = oldLink.updated_at || nowIso;
+      }
+      updatedLinks[existingIdx] = newLink;
+    } else {
+      newLink.updated_at = nowIso;
+      updatedLinks.unshift(newLink);
+    }
+    
+    const newData = { links: updatedLinks, history: updatedHistory };
+    setData(newData);
+    if (project?.path) window.api.waSaveDesignLinks(project.path, newData);
+    
     setShowForm(false);
+    setEditingLink(null);
   }
 
   function handleDelete(id) {
-    const updated = links.filter(l => l.id !== id);
-    setLinks(updated);
-    saveLinks(project?.id, updated);
+    if (!window.confirm('Hapus link ini?')) return;
+    const updatedLinks = data.links.filter(l => l.id !== id);
+    const newData = { links: updatedLinks, history: data.history };
+    setData(newData);
+    if (project?.path) window.api.waSaveDesignLinks(project.path, newData);
+  }
+
+  function handleOpenDiff(link) {
+    setDiffModalLink(link);
+    // Update last viewed so it clears the badge after viewing
+    const now = Date.now();
+    setLastViewed(now);
+    localStorage.setItem(lastViewedKey, now.toString());
   }
 
   const filtered = search
-    ? links.filter(l =>
+    ? data.links.filter(l =>
         l.label?.toLowerCase().includes(search.toLowerCase()) ||
         l.note?.toLowerCase().includes(search.toLowerCase()) ||
         l.prdUrl?.toLowerCase().includes(search.toLowerCase())
       )
-    : links;
+    : data.links;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -234,26 +367,30 @@ export default function DesignPRDPanel({ project }) {
           </p>
         </div>
         <button className="btn btn-primary btn-sm"
-          onClick={() => setShowForm(p => !p)}
+          onClick={() => { setShowForm(p => !p); setEditingLink(null); }}
           style={{ flexShrink: 0 }}>
           {showForm ? '✕ Batal' : '+ Tambah Link'}
         </button>
       </div>
 
-      {/* Add form */}
-      {showForm && (
-        <AddLinkForm onAdd={handleAdd} onCancel={() => setShowForm(false)} />
+      {/* Add / Edit form */}
+      {(showForm || editingLink) && (
+        <AddLinkForm 
+          initialData={editingLink}
+          onSave={handleSaveLink} 
+          onCancel={() => { setShowForm(false); setEditingLink(null); }} 
+        />
       )}
 
       {/* Search */}
-      {links.length > 2 && (
+      {data.links.length > 2 && (
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="🔍 Cari berdasarkan nama atau catatan..."
           style={{ fontSize: 12 }} />
       )}
 
       {/* Empty state */}
-      {links.length === 0 && !showForm && (
+      {data.links.length === 0 && !showForm && !editingLink && (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 12, fontSize: 13 }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📐</div>
           <div style={{ marginBottom: 4 }}>Belum ada referensi design.</div>
@@ -263,19 +400,36 @@ export default function DesignPRDPanel({ project }) {
 
       {/* Link list */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12 }}>
-        {filtered.map(link => (
-          <LinkCard
-            key={link.id}
-            link={link}
-            onDelete={() => handleDelete(link.id)}
-            onOpenFigma={setSelectedFigma}
-          />
-        ))}
+        {filtered.map(link => {
+          const linkTime = link.updated_at ? new Date(link.updated_at).getTime() : 0;
+          const isUpdated = linkTime > lastViewed;
+          
+          return (
+            <LinkCard
+              key={link.id}
+              link={link}
+              isUpdated={isUpdated}
+              onEdit={() => { setEditingLink(link); setShowForm(false); }}
+              onDelete={() => handleDelete(link.id)}
+              onOpenFigma={setSelectedFigma}
+              onOpenDiff={() => handleOpenDiff(link)}
+            />
+          );
+        })}
       </div>
 
       {/* Figma embed */}
       {selectedFigma && (
         <FigmaEmbed url={selectedFigma} onClose={() => setSelectedFigma(null)} />
+      )}
+      
+      {/* Diff Modal */}
+      {diffModalLink && (
+        <DiffModal 
+          link={diffModalLink} 
+          histories={data.history.filter(h => h.link_id === diffModalLink.id)} 
+          onClose={() => setDiffModalLink(null)} 
+        />
       )}
     </div>
   );
