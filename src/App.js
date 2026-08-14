@@ -24,15 +24,17 @@ import TeamAdminPage from './components/TeamAdmin/TeamAdminPage';
 import Login from './components/Login';
 import UpdatePassword from './components/UpdatePassword';
 import Onboarding from './components/Onboarding';
+import LicenseActivation from './components/LicenseActivation';
 import { supabase } from './lib/supabaseClient';
 import { useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { isLicenseValid } from './lib/license';
 import './App.css';
 
 export default function App() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [view, setView] = useState('dashboard'); // dashboard|testcases|bugreports|sqllab|securitylab|performancelab|cicdlab|apilab|automationlab|environments|testplans|requirements|tclibrary|doclab
+  const [view, setView] = useState('dashboard');
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [bugPrefillData, setBugPrefillData] = useState(null);
@@ -42,6 +44,7 @@ export default function App() {
   const [showVaultSettings, setShowVaultSettings] = useState(false);
   const [showIntegrationSettings, setShowIntegrationSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [licensed, setLicensed] = useState(() => isLicenseValid());
 
   const { user, loading, recoveryMode } = useAuth();
 
@@ -183,6 +186,15 @@ export default function App() {
     return <UpdatePassword />;
   }
 
+  // License gate — tampil sebelum login
+  if (!licensed) {
+    return (
+      <LanguageProvider>
+        <LicenseActivation onActivated={() => setLicensed(true)} />
+      </LanguageProvider>
+    );
+  }
+
   if (!user) {
     return (
       <LanguageProvider>
@@ -227,8 +239,6 @@ export default function App() {
             onSelectTCLibrary={handleSelectTCLibrary}
             onSelectDocLab={handleSelectDocLab}
             onSelectTeamAdmin={handleSelectTeamAdmin}
-            onSelectProject={handleSelectProject}
-            onNewProject={() => setShowProjectModal(true)}
             onOpenCredentials={(p) => setCredentialProject(p)}
             onEditProject={(p) => setEditingProject(p)}
             onDeleteProject={handleDeleteProject}
