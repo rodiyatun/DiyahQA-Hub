@@ -534,7 +534,12 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     if (syncStatus === 'syncing') return;
     setSyncStatus('syncing');
     try {
-      await window.api.syncPlaneStatus({});
+      const result = await window.api.syncPlaneStatus({ bugs });
+      if (result && result.success && result.updates) {
+        for (const u of result.updates) {
+          await supabase.from('bug_reports').update({ plane_status: u.plane_status }).eq('id', u.id);
+        }
+      }
       lastSyncRef.current = Date.now();
       await loadBugReports();
       setSyncStatus('idle');
@@ -568,13 +573,19 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     setTransferringIds(prev => [...prev, bugId]);
     try {
       const result = await window.api.transferBugToPlane({ 
-        bugId, 
+        bug, 
         assigneeEmail: transferData.email?.trim(),
         labelIds: transferData.labelIds,
         moduleIds: transferData.moduleIds,
         cycleId: transferData.cycleId
       });
       if (result && result.success) {
+        await supabase.from('bug_reports').update({
+          plane_issue_id: result.planeIssueId,
+          plane_issue_url: result.planeIssueUrl,
+          plane_status: result.planeStatus || 'Backlog'
+        }).eq('id', bugId);
+
         setBugs(prev => prev.map(b =>
           b.id === bugId
             ? { ...b, plane_issue_id: result.planeIssueId, plane_issue_url: result.planeIssueUrl, plane_status: result.planeStatus || 'Backlog' }
@@ -618,12 +629,25 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
     setBulkTransferring(true);
     try {
       const result = await window.api.transferBugsBulkToPlane({ 
-        bugIds: selected,
+        bugs: bugsToTransfer,
         assigneeEmail: transferData.email?.trim(),
         labelIds: transferData.labelIds,
         moduleIds: transferData.moduleIds,
         cycleId: transferData.cycleId
       });
+
+      if (result && result.results) {
+        for (const res of result.results) {
+          if (res.status === 'success') {
+            await supabase.from('bug_reports').update({
+              plane_issue_id: res.planeIssueId,
+              plane_issue_url: res.planeIssueUrl,
+              plane_status: res.planeStatus || 'Backlog'
+            }).eq('id', res.bugId);
+          }
+        }
+      }
+
       await loadBugReports();
 
       if (result && result.results) {
@@ -655,15 +679,28 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   // ── Existing handlers ─────────────────────────────────────────
   async function handleSaveBug(formData) {
     try {
+      // Sanitize: convert empty strings to null to prevent "invalid input syntax for type bigint: ''"
+      const sanitizedForm = {};
+      for (const key in formData) {
+        sanitizedForm[key] = formData[key] === '' ? null : formData[key];
+      }
+
       if (editingBug) {
-        const { error } = await supabase.from('bug_reports').update(formData).eq('id', editingBug.id);
+        const { error } = await supabase.from('bug_reports').update(sanitizedForm).eq('id', editingBug.id);
         if (error) throw error;
       } else {
         const insertData = {
-          ...formData,
+          ...sanitizedForm,
           workspace_id: activeWorkspaceId || null,
           created_by: user?.id || null,
         };
+        
+        // Auto-generate bug_number if not provided
+        if (!insertData.bug_number && insertData.project_id) {
+          const { count } = await supabase.from('bug_reports').select('*', { count: 'exact', head: true }).eq('project_id', insertData.project_id);
+          insertData.bug_number = `BUG-${String((count || 0) + 1).padStart(3, '0')}`;
+        }
+        
         const { error } = await supabase.from('bug_reports').insert([insertData]);
         if (error) throw error;
       }

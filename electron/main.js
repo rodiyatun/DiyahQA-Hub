@@ -526,6 +526,8 @@ async function syncToSupabaseAsync(sql, params, lastInsertId) {
 }
 
 // ─── Window ──────────────────────────────────────────────────────────────────
+let mainWindow = null;
+
 function createWindow() {
   const isMac = process.platform === 'darwin';
   const isWin = process.platform === 'win32';
@@ -535,9 +537,7 @@ function createWindow() {
     height: 900,
     minWidth: 1000,
     minHeight: 700,
-    // macOS: inset title bar; Windows/Linux: default frame
     titleBarStyle: isMac ? 'hiddenInset' : 'default',
-    // Windows: remove default frame and use custom (optional, bisa di-comment jika ingin frame standar)
     frame: !isWin ? undefined : true,
     webPreferences: {
       nodeIntegration: false,
@@ -546,6 +546,12 @@ function createWindow() {
     },
     backgroundColor: '#0f172a',
     show: false
+  });
+
+  mainWindow = win;
+
+  win.on('closed', () => {
+    mainWindow = null;
   });
 
   win.once('ready-to-show', () => win.show());
@@ -557,13 +563,55 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  initDB();
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// Deep linking protocol
+const PROTOCOL = 'diyahqahub';
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL);
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      const url = commandLine.pop();
+      if (url && url.includes(`${PROTOCOL}://`)) {
+        mainWindow.webContents.send('deep-link', url);
+      }
+    }
   });
-});
+
+  app.whenReady().then(() => {
+    initDB();
+    createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      mainWindow.webContents.send('deep-link', url);
+    } else {
+      // If app is not ready yet, store it or wait
+      app.whenReady().then(() => {
+        setTimeout(() => {
+          if (mainWindow) mainWindow.webContents.send('deep-link', url);
+        }, 1000);
+      });
+    }
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
@@ -1844,28 +1892,43 @@ ipcMain.handle('wa-list-projects', () => {
   ensureProjectsDir();
   try {
     return fs.readdirSync(PROJECTS_DIR)
-      .filter(name => {
-        const pkgPath = path.join(PROJECTS_DIR, name, 'package.json');
-        return fs.existsSync(pkgPath);
-      })
       .map(name => {
-        const pkgPath = path.join(PROJECTS_DIR, name, 'package.json');
-        const cfgPath = path.join(PROJECTS_DIR, name, 'playwright.config.ts');
+        const p = path.join(PROJECTS_DIR, name);
+        return { name, path: p, stat: fs.statSync(p) };
+      })
+      .filter(item => item.stat.isDirectory())
+      .map(item => {
+        const { name, path: projPath } = item;
+        const pkgPath = path.join(projPath, 'package.json');
+        const cfgPath = path.join(projPath, 'playwright.config.ts');
         let pkg = {};
         try { pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')); } catch {}
-        const testDir = path.join(PROJECTS_DIR, name, 'tests');
+        
         let testCount = 0;
-        if (fs.existsSync(testDir)) {
-          testCount = fs.readdirSync(testDir).filter(f => f.endsWith('.spec.ts')).length;
-        }
+        const countTests = (dir) => {
+          if (!fs.existsSync(dir)) return 0;
+          let count = 0;
+          const items = fs.readdirSync(dir);
+          for (const i of items) {
+            if (i === 'node_modules' || i === '.git' || i === 'test-results') continue;
+            const full = path.join(dir, i);
+            const s = fs.statSync(full);
+            if (s.isDirectory()) count += countTests(full);
+            else if (full.endsWith('.spec.ts')) count++;
+          }
+          return count;
+        };
+        testCount = countTests(projPath);
+
         return {
           name,
-          path: path.join(PROJECTS_DIR, name),
+          path: projPath,
           hasConfig: fs.existsSync(cfgPath),
           testCount,
           type: pkg.diyahqa_type || 'web',
         };
-      });
+      })
+      .filter(p => p.testCount > 0 || fs.existsSync(path.join(p.path, 'package.json')));
   } catch (e) {
     return [];
   }
@@ -1991,6 +2054,81 @@ export default defineConfig({
   });
 });
 
+// ── Import project from ZIP or Folder
+ipcMain.handle('wa-import-project', async (event) => {
+  ensureProjectsDir();
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Import Playwright Project',
+    properties: ['openFile', 'openDirectory'],
+    filters: [
+      { name: 'Playwright Projects', extensions: ['zip'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+
+  if (canceled || filePaths.length === 0) return { success: false };
+
+  const sourcePath = filePaths[0];
+  const stat = fs.statSync(sourcePath);
+  const projectName = path.basename(sourcePath, '.zip').replace(/[^a-zA-Z0-9-_]/g, '-');
+  const projDir = path.join(PROJECTS_DIR, projectName);
+
+  if (fs.existsSync(projDir)) {
+    return { success: false, error: 'Project dengan nama yang sama sudah ada.' };
+  }
+
+  try {
+    if (stat.isDirectory()) {
+      // It's a folder, copy it
+      const copyRecursiveSync = (src, dest) => {
+        const exists = fs.existsSync(src);
+        const stats = exists && fs.statSync(src);
+        const isDirectory = exists && stats.isDirectory();
+        if (isDirectory) {
+          fs.mkdirSync(dest);
+          fs.readdirSync(src).forEach((childItemName) => {
+            if (childItemName === 'node_modules' || childItemName === '.git') return;
+            copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+          });
+        } else {
+          fs.copyFileSync(src, dest);
+        }
+      };
+      copyRecursiveSync(sourcePath, projDir);
+    } else if (sourcePath.endsWith('.zip')) {
+      // It's a ZIP, extract it
+      const extractZip = require('extract-zip');
+      await extractZip(sourcePath, { dir: projDir });
+      // Fix nested folder issue
+      const extractedItems = fs.readdirSync(projDir);
+      if (extractedItems.length === 1) {
+        const singleItem = path.join(projDir, extractedItems[0]);
+        if (fs.statSync(singleItem).isDirectory()) {
+          const contents = fs.readdirSync(singleItem);
+          contents.forEach(c => {
+            fs.renameSync(path.join(singleItem, c), path.join(projDir, c));
+          });
+          fs.rmdirSync(singleItem);
+        }
+      }
+    } else {
+      return { success: false, error: 'Format tidak didukung. Pilih folder atau file .zip.' };
+    }
+
+    // Run npm install if package.json exists
+    if (fs.existsSync(path.join(projDir, 'package.json'))) {
+      // Run async npm install (this returns success before install finishes, user can check later)
+      const npmCmd = resolveNpm();
+      const child = spawn(npmCmd, ['install'], { cwd: projDir, stdio: 'ignore', env: buildSpawnEnv(), detached: true });
+      child.unref();
+    }
+
+    return { success: true, path: projDir, name: projectName };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
 // ── Read/Write file di project
 ipcMain.handle('wa-read-file', (_, { projPath, relPath }) => {
   const fullPath = path.join(projPath, relPath);
@@ -2008,25 +2146,31 @@ ipcMain.handle('wa-write-file', (_, { projPath, relPath, content }) => {
 
 ipcMain.handle('wa-list-files', (_, { projPath, dir }) => {
   const target = path.join(projPath, dir || '');
-  if (!fs.existsSync(target)) {
-    // Buat folder dan file sample jika belum ada
-    fs.mkdirSync(target, { recursive: true });
-    if (dir === 'tests') {
-      const sample = path.join(target, 'sample.spec.ts');
-      if (!fs.existsSync(sample)) {
-        const pkg = (() => { try { return JSON.parse(fs.readFileSync(path.join(projPath, 'package.json'), 'utf-8')); } catch { return {}; } })();
-        const baseUrl = pkg.diyahqa_baseUrl || '';
-        const isApi = pkg.diyahqa_type === 'api';
-        fs.writeFileSync(sample, isApi
-          ? `import { test, expect } from '@playwright/test';\n\ntest('sample API test', async ({ request }) => {\n  const response = await request.get('${baseUrl}/health');\n  expect(response.status()).toBe(200);\n});\n`
-          : `import { test, expect } from '@playwright/test';\n\ntest('sample web test', async ({ page }) => {\n  await page.goto('${baseUrl || 'https://example.com'}');\n  await expect(page).toHaveTitle(/.+/);\n});\n`);
+  
+  if (dir === 'tests' || dir === '') {
+    // Return all .spec.ts files recursively from projPath
+    const files = [];
+    const findSpecs = (currentDir, relDir = '') => {
+      if (!fs.existsSync(currentDir)) return;
+      const items = fs.readdirSync(currentDir);
+      for (const item of items) {
+        if (item === 'node_modules' || item === '.git' || item === 'test-results') continue;
+        const full = path.join(currentDir, item);
+        const rel = relDir ? `${relDir}/${item}` : item;
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) {
+          findSpecs(full, rel);
+        } else if (full.endsWith('.spec.ts')) {
+          files.push({ name: rel, isDir: false, size: stat.size });
+        }
       }
-    }
-    return fs.readdirSync(target).map(name => {
-      const stat = fs.statSync(path.join(target, name));
-      return { name, isDir: stat.isDirectory(), size: stat.size };
-    });
+    };
+    findSpecs(projPath);
+    return files;
   }
+
+  // Fallback for non-tests generic directory listing
+  if (!fs.existsSync(target)) return [];
   return fs.readdirSync(target).map(name => {
     const fullPath = path.join(target, name);
     const stat = fs.statSync(fullPath);
@@ -2921,10 +3065,9 @@ ipcMain.handle('get-plane-cycles', async () => {
  * Transfers a single bug report to Plane as an issue with Todo status.
  * Requirements: 2.2, 2.3, 2.4, 2.6, 2.7, 2.9, 5.5
  */
-ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail, labelIds, moduleIds, cycleId }) => {
+ipcMain.handle('transfer-bug-to-plane', async (_, { bug, assigneeEmail, labelIds, moduleIds, cycleId }) => {
   try {
-    const bug = queryOne('SELECT * FROM bug_reports WHERE id = ?', [bugId]);
-    if (!bug) return { success: false, error: 'Bug not found' };
+    if (!bug) return { success: false, error: 'Bug data is missing' };
 
     const config = getPlaneConfigRaw();
     if (!config || !isConfigValid(config)) {
@@ -2980,18 +3123,15 @@ ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail, labelI
     const issueUrl = buildPlaneIssueUrl(config.workspaceSlug, config.projectId, issueId, config.baseUrl);
     const initialStatus = todoState.name || 'Backlog';
 
-    db.run(
-      'UPDATE bug_reports SET plane_issue_id=?, plane_issue_url=?, plane_status=? WHERE id=?',
-      [issueId, issueUrl, initialStatus, bugId]
-    );
-    saveDB();
+    // Note: Local DB update removed because bug_reports moved to Supabase.
+    // The frontend must now persist plane_issue_id and plane_issue_url.
 
     // Send Google Chat notification (fire and forget)
     if (config.gchatWebhookUrl) {
       sendGoogleChatNotification(config.gchatWebhookUrl, bug, issueUrl, emailToUse).catch(() => {});
     }
 
-    return { success: true, planeIssueId: issueId, planeIssueUrl: issueUrl, planeStatus: initialStatus };
+    return { success: true, planeIssueId: issueId, planeIssueUrl: issueUrl, planeStatus: initialStatus, bugId: bug.id };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -3003,7 +3143,7 @@ ipcMain.handle('transfer-bug-to-plane', async (_, { bugId, assigneeEmail, labelI
  * Skips bugs that already have a plane_issue_id.
  * Requirements: 3.4, 3.7, 3.9
  */
-ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds, assigneeEmail, labelIds, moduleIds, cycleId }) => {
+ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugs, assigneeEmail, labelIds, moduleIds, cycleId }) => {
   const results = [];
   try {
     const config = getPlaneConfigRaw();
@@ -3026,14 +3166,9 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds, assigneeEmail,
 
     const initialStatus = todoState.name || 'Backlog';
 
-    for (const bugId of (bugIds || [])) {
+    for (const bug of (bugs || [])) {
+      const bugId = bug.id;
       try {
-        const bug = queryOne('SELECT * FROM bug_reports WHERE id = ?', [bugId]);
-        if (!bug) {
-          results.push({ bugId, title: '', status: 'failed', error: 'Bug not found' });
-          continue;
-        }
-
         if (bug.plane_issue_id) {
           results.push({ bugId, title: bug.title, status: 'skipped', error: 'Sudah ada di Plane' });
           continue;
@@ -3067,24 +3202,23 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds, assigneeEmail,
           }
 
           const issueUrl = buildPlaneIssueUrl(config.workspaceSlug, config.projectId, issueId, config.baseUrl);
-          db.run(
-            'UPDATE bug_reports SET plane_issue_id=?, plane_issue_url=?, plane_status=? WHERE id=?',
-            [issueId, issueUrl, initialStatus, bugId]
-          );
+          
+          // Note: Local DB update removed because bug_reports moved to Supabase.
+          // The frontend must now persist plane_issue_id and plane_issue_url.
+          
           // Send Google Chat notification (fire and forget)
           if (config.gchatWebhookUrl) {
             sendGoogleChatNotification(config.gchatWebhookUrl, bug, issueUrl, assigneeIds.length > 0 ? (config.assigneeEmail || '') : '').catch(() => {});
           }
-          results.push({ bugId, title: bug.title, status: 'success' });
+          results.push({ bugId, title: bug.title, status: 'success', planeIssueId: issueId, planeIssueUrl: issueUrl, planeStatus: initialStatus });
         } else {
           results.push({ bugId, title: bug.title, status: 'failed', error: result.error, httpStatus: result.status });
         }
       } catch (e) {
-        results.push({ bugId, title: '', status: 'failed', error: e.message });
+        results.push({ bugId, title: bug.title || '', status: 'failed', error: e.message });
       }
     }
 
-    saveDB();
     return { success: true, results };
   } catch (e) {
     return { success: false, error: e.message, results: [] };
@@ -3097,29 +3231,21 @@ ipcMain.handle('transfer-bugs-bulk-to-plane', async (_, { bugIds, assigneeEmail,
  * If bugIds is empty/null, syncs all bugs with plane_issue_id.
  * Requirements: 4.9, 4.11, 4.12, 6.1
  */
-ipcMain.handle('sync-plane-status', async (_, { bugIds } = {}) => {
+ipcMain.handle('sync-plane-status', async (_, { bugs } = {}) => {
   let updated = 0;
   let failed = 0;
   const errors = [];
+  const updates = []; // Store updates to return to frontend
 
   try {
     const config = getPlaneConfigRaw();
     if (!config || !isConfigValid(config)) {
-      return { updated: 0, failed: 0, errors: [{ bugId: null, error: 'Plane API belum dikonfigurasi' }] };
+      return { updated: 0, failed: 0, errors: [{ bugId: null, error: 'Plane API belum dikonfigurasi' }], updates: [] };
     }
 
-    let bugs;
-    if (bugIds && bugIds.length > 0) {
-      const placeholders = bugIds.map(() => '?').join(',');
-      bugs = queryAll(
-        `SELECT * FROM bug_reports WHERE id IN (${placeholders}) AND plane_issue_id IS NOT NULL`,
-        bugIds
-      );
-    } else {
-      bugs = queryAll('SELECT * FROM bug_reports WHERE plane_issue_id IS NOT NULL');
-    }
+    const bugsToSync = (bugs || []).filter(b => b.plane_issue_id);
 
-    for (const bug of bugs) {
+    for (const bug of bugsToSync) {
       try {
         const result = await planeRequest(
           'GET',
@@ -3146,7 +3272,7 @@ ipcMain.handle('sync-plane-status', async (_, { bugIds } = {}) => {
           }
 
           if (statusName) {
-            db.run('UPDATE bug_reports SET plane_status=? WHERE id=?', [statusName, bug.id]);
+            updates.push({ id: bug.id, plane_status: statusName });
             updated++;
           } else {
             console.warn('[Plane] sync: no state name found in response for bug', bug.id, JSON.stringify(data).slice(0, 300));
@@ -3161,10 +3287,9 @@ ipcMain.handle('sync-plane-status', async (_, { bugIds } = {}) => {
       }
     }
 
-    saveDB();
-    return { updated, failed, errors };
+    return { success: true, updated, failed, errors, updates };
   } catch (e) {
-    return { updated, failed, errors: [{ bugId: null, error: e.message }] };
+    return { success: false, updated, failed, errors: [{ bugId: null, error: e.message }], updates: [] };
   }
 });
 

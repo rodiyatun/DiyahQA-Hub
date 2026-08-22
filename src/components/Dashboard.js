@@ -25,53 +25,127 @@ const SEVERITY_COLORS_BUG = {
   Low: '#6366f1',
 };
 
-export default function Dashboard({ projects, onSelectProject }) {
+export default function Dashboard({ projects, onSelectProject, selectedProject }) {
   const [stats, setStats] = useState(null);
   const [bugStats, setBugStats] = useState(null);
+  const [bastStats, setBastStats] = useState({ total: 0, waiting: 0, done: 0, recent: [] });
   const { enabled: aiEnabled, setEnabled: setAiEnabled } = useAgent();
   const { t } = useLanguage();
   const [prediction, setPrediction] = useState('');
   const [predicting, setPredicting] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
+  const [projectStats, setProjectStats] = useState([]);
 
   useEffect(() => {
     loadStats();
+    loadProjectStats();
   }, [projects]);
 
   useEffect(() => {
     loadBugStats();
+    loadBastStats();
   }, []);
 
   async function loadStats() {
     try {
-      const { data, error } = await supabase.from('testcases').select('status');
-      if (error) throw error;
-      
-      const tc = data || [];
+      // Fetch ALL testcases with pagination (Supabase default limit = 1000)
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('testcases')
+          .select('status, project_id')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allData = [...allData, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      const tc = allData;
       const total = tc.length;
       let pass = 0, fail = 0, pending = 0;
       const counts = {};
-      
+
       tc.forEach(t => {
         counts[t.status] = (counts[t.status] || 0) + 1;
         if (t.status === 'Pass') pass++;
         else if (t.status === 'Fail') fail++;
         else if (t.status === 'Pending') pending++;
       });
-      
+
       const byStatus = Object.keys(counts).map(k => ({ name: k, value: counts[k] }));
       const passRate = total > 0 ? Math.round((pass / total) * 100) : 0;
-      
+
       const { data: historyData } = await supabase
         .from('status_history')
         .select('*')
         .order('changed_at', { ascending: false })
         .limit(10);
-      
+
       setStats({ total, passRate, byStatus, pass, fail, pending, recentHistory: historyData || [] });
     } catch (e) {
       console.error(e);
       setStats({ total: 0, passRate: 0, byStatus: [], pass: 0, fail: 0, pending: 0, recentHistory: [] });
+    }
+  }
+
+  async function loadProjectStats() {
+    try {
+      if (!projects || projects.length === 0) return;
+
+      // Paginate to get all testcases
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('testcases')
+          .select('project_id, status')
+          .range(from, from + pageSize - 1);
+        if (error) break;
+        if (!data || data.length === 0) break;
+        allData = [...allData, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      // Fetch all open/in progress bugs to get "sisa bug"
+      const { data: activeBugs } = await supabase
+        .from('bug_reports')
+        .select('project_id')
+        .in('status', ['Open', 'In Progress']);
+
+      const bugCounts = {};
+      (activeBugs || []).forEach(b => {
+        bugCounts[b.project_id] = (bugCounts[b.project_id] || 0) + 1;
+      });
+
+      // Build per-project count map
+      const map = {};
+      allData.forEach(tc => {
+        if (!map[tc.project_id]) map[tc.project_id] = { total: 0, pass: 0, fail: 0, pending: 0, skip: 0 };
+        map[tc.project_id].total++;
+        if (tc.status === 'Pass') map[tc.project_id].pass++;
+        else if (tc.status === 'Fail') map[tc.project_id].fail++;
+        else if (tc.status === 'Pending') map[tc.project_id].pending++;
+        else if (tc.status === 'Skip') map[tc.project_id].skip++;
+      });
+
+      const result = projects.map(p => ({
+        ...p,
+        tcTotal: map[p.id]?.total || 0,
+        tcPass: map[p.id]?.pass || 0,
+        tcFail: map[p.id]?.fail || 0,
+        tcPending: map[p.id]?.pending || 0,
+        tcSkip: map[p.id]?.skip || 0,
+        bugRemaining: bugCounts[p.id] || 0,
+      }));
+      setProjectStats(result);
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -100,6 +174,29 @@ export default function Dashboard({ projects, onSelectProject }) {
     }
   }
 
+  async function loadBastStats() {
+    try {
+      const { data, error } = await supabase
+        .from('bast_documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      
+      const basts = data || [];
+      const waiting = basts.filter(b => b.status === 'Menunggu TTD').length;
+      const done = basts.filter(b => b.status === 'Selesai').length;
+      
+      setBastStats({
+        total: basts.length,
+        waiting,
+        done,
+        recent: basts.slice(0, 5) // top 5
+      });
+    } catch (e) {
+      console.error('Error loading bast:', e);
+    }
+  }
+
   const pieData = stats?.byStatus?.map(s => ({
     name: s.name,
     value: s.value,
@@ -112,7 +209,7 @@ export default function Dashboard({ projects, onSelectProject }) {
 
   async function handlePredictBugs() {
     setPredicting(true);
-    setPrediction('🤖 Menganalisis riwayat bug dan memprediksi risiko...');
+    setPrediction('🤖 Memanggil Antigravity AI... (Proses ini bisa memakan waktu 10-20 detik karena memuat model dan menganalisis seluruh data)');
     try {
       if (!requireDesktop('Insight Generator AI')) {
         setPredicting(false);
@@ -312,29 +409,94 @@ export default function Dashboard({ projects, onSelectProject }) {
         </div>
       </div>
 
-      {/* Projects List */}
-      <div className="card">
-        <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Folder size={18} /> {t('dashboard.projects')}
-        </h3>
-        {projects.length === 0 ? (
+      {/* Ringkasan per project */}
+      <div style={{ marginTop: 16 }}>
+        <h3 className="card-title" style={{ fontSize: 18, marginBottom: 16 }}>Ringkasan per project</h3>
+        {projectStats.length === 0 ? (
           <div className="empty-chart">Belum ada project. Buat project baru dari sidebar.</div>
         ) : (
           <div className="projects-grid">
-            {projects.map(p => (
-              <button key={p.id} className="project-card" onClick={() => onSelectProject(p)}>
-                <span className="project-card-icon" style={{ color: 'var(--text-muted)' }}><Folder size={24} /></span>
-                <div className="project-card-info">
-                  <div className="project-card-name">{p.name}</div>
-                  {p.description && (
-                    <div className="project-card-desc">{p.description}</div>
-                  )}
+            {projectStats.map(p => {
+              const total = p.tcTotal || 0;
+              const passPct = total > 0 ? Math.round((p.tcPass / total) * 100) : 0;
+              const failPct = total > 0 ? Math.round((p.tcFail / total) * 100) : 0;
+              const pendingPct = total > 0 ? Math.round((p.tcPending / total) * 100) : 0;
+              const skipPct = total > 0 ? Math.round((p.tcSkip / total) * 100) : 0;
+              
+              return (
+                <div key={p.id} className="project-summary-card" onClick={() => onSelectProject(p)}>
+                  <div className="project-summary-header">
+                    <div className="project-summary-title">
+                      <Folder size={18} style={{ color: 'var(--text-muted)' }} /> {p.name}
+                    </div>
+                    {p.bugRemaining > 0 && (
+                      <div className="project-summary-badge">
+                        <Bug size={12} /> {p.bugRemaining} bug sisa
+                      </div>
+                    )}
+                  </div>
+                  <div className="project-summary-subtitle">{total} total test case</div>
+                  
+                  <div className="progress-bar-container">
+                    {passPct > 0 && <div className="progress-segment pass" style={{ width: `${passPct}%` }}></div>}
+                    {failPct > 0 && <div className="progress-segment fail" style={{ width: `${failPct}%` }}></div>}
+                    {pendingPct > 0 && <div className="progress-segment pending" style={{ width: `${pendingPct}%` }}></div>}
+                    {skipPct > 0 && <div className="progress-segment skip" style={{ width: `${skipPct}%` }}></div>}
+                  </div>
+                  
+                  <div className="progress-text">
+                    {passPct}% pass &bull; {failPct}% fail &bull; {pendingPct}% pending &bull; {skipPct}% skip
+                  </div>
                 </div>
-                <span className="project-card-arrow" style={{ color: 'var(--text-muted)' }}><ArrowRight size={16} /></span>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
+      </div>
+
+      {/* BAST Section */}
+      <div style={{ marginTop: 24, marginBottom: 32 }}>
+        <h3 className="card-title" style={{ fontSize: 18, marginBottom: 16 }}>BAST terbaru</h3>
+        <div className="bast-summary-grid">
+          <div className="bast-summary-box total">
+            <span className="bast-box-label">Total BAST</span>
+            <span className="bast-box-value">{bastStats.total}</span>
+          </div>
+          <div className="bast-summary-box waiting">
+            <span className="bast-box-label">Menunggu TTD</span>
+            <span className="bast-box-value">{bastStats.waiting}</span>
+          </div>
+          <div className="bast-summary-box done">
+            <span className="bast-box-label">Selesai</span>
+            <span className="bast-box-value">{bastStats.done}</span>
+          </div>
+        </div>
+
+        <div className="bast-list">
+          {bastStats.recent.length === 0 ? (
+            <div className="empty-chart" style={{ padding: '20px 0' }}>Belum ada dokumen BAST.</div>
+          ) : (
+            bastStats.recent.map(b => {
+              const proj = projects.find(p => p.id === b.project_id);
+              const isDone = b.status === 'Selesai';
+              return (
+                <div key={b.id} className="bast-list-item">
+                  <div className="bast-item-info">
+                    <span className="bast-item-title">{b.bast_number}</span>
+                    <span className="bast-item-subtitle">{proj ? proj.name : 'Unknown'} &bull; {b.document_date ? new Date(b.document_date).toLocaleDateString('id-ID') : '-'}</span>
+                  </div>
+                  <span className="badge" style={{ 
+                    background: isDone ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)', 
+                    color: isDone ? '#22c55e' : '#f59e0b', 
+                    border: `1px solid ${isDone ? 'rgba(34, 197, 94, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` 
+                  }}>
+                    {b.status}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

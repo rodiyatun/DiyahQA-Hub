@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 // ─── Extract Figma URL dari teks ──────────────────────────────────────────────
 function extractFigmaUrls(text) {
@@ -206,7 +207,7 @@ function AddLinkForm({ onSave, onCancel, initialData }) {
   function handleSave() {
     if (!form.label.trim() && !form.prdUrl.trim() && !form.figmaUrl.trim()) return;
     onSave({
-      id: initialData?.id || Date.now(),
+      id: initialData?.id ? String(initialData.id) : String(Date.now()),
       label: form.label.trim() || 'Untitled',
       prdUrl: form.prdUrl.trim(),
       figmaUrl: form.figmaUrl.trim(),
@@ -260,34 +261,32 @@ export default function DesignPRDPanel({ project }) {
   const lastViewedKey = `design_prd_last_viewed_${project?.id || 'default'}`;
 
   useEffect(() => {
-    // Load last viewed
+    // Load last viewed timestamp
     const storedLV = localStorage.getItem(lastViewedKey);
     const lvTime = storedLV ? parseInt(storedLV, 10) : Date.now();
     setLastViewed(lvTime);
-    
-    // Automatically set last viewed to now when opening the tab
     localStorage.setItem(lastViewedKey, Date.now().toString());
 
-    if (project?.path) {
-      window.api.waGetDesignLinks(project.path).then(res => {
-        let loadedData = res || { links: [], history: [] };
-        
-        // Migrate legacy localStorage links if workspace is empty
-        if (!loadedData.links?.length) {
-          try {
-            const local = JSON.parse(localStorage.getItem(`design_prd_links_${project.id}`) || '[]');
-            if (local.length > 0) {
-              const migratedLinks = local.map(l => ({ ...l, updated_at: l.createdAt || new Date().toISOString() }));
-              loadedData = { links: migratedLinks, history: [] };
-              window.api.waSaveDesignLinks(project.path, loadedData);
-              localStorage.removeItem(`design_prd_links_${project.id}`);
-            }
-          } catch(e) {}
-        }
-        
-        setData({ links: loadedData.links || [], history: loadedData.history || [] });
+    if (!project?.id) return;
+
+    // Load Design & PRD links from Supabase
+    supabase
+      .from('design_prd_links')
+      .select('*')
+      .eq('project_id', project.id)
+      .order('created_at', { ascending: false })
+      .then(({ data: rows, error }) => {
+        if (error) { console.error('Error loading design links:', error.message); return; }
+        const links = (rows || []).map(r => ({
+          id: r.id,
+          label: r.label,
+          figmaUrl: r.figma_url,
+          prdUrl: r.prd_url,
+          note: r.note,
+          updated_at: r.updated_at,
+        }));
+        setData({ links, history: [] });
       });
-    }
   }, [project]);
 
   function handleSaveLink(newLink) {
@@ -324,8 +323,22 @@ export default function DesignPRDPanel({ project }) {
     
     const newData = { links: updatedLinks, history: updatedHistory };
     setData(newData);
-    if (project?.path) window.api.waSaveDesignLinks(project.path, newData);
-    
+
+    // Save to Supabase
+    if (project?.id) {
+      const supabaseRow = {
+        id: newLink.id,
+        project_id: project.id,
+        label: newLink.label,
+        figma_url: newLink.figmaUrl || null,
+        prd_url: newLink.prdUrl || null,
+        note: newLink.note || null,
+        updated_at: new Date().toISOString(),
+      };
+      supabase.from('design_prd_links').upsert(supabaseRow, { onConflict: 'id' })
+        .then(({ error }) => { if (error) console.error('Error saving design link:', error.message); });
+    }
+
     setShowForm(false);
     setEditingLink(null);
   }
@@ -333,9 +346,13 @@ export default function DesignPRDPanel({ project }) {
   function handleDelete(id) {
     if (!window.confirm('Hapus link ini?')) return;
     const updatedLinks = data.links.filter(l => l.id !== id);
-    const newData = { links: updatedLinks, history: data.history };
-    setData(newData);
-    if (project?.path) window.api.waSaveDesignLinks(project.path, newData);
+    setData({ links: updatedLinks, history: data.history });
+
+    // Delete from Supabase
+    if (project?.id) {
+      supabase.from('design_prd_links').delete().eq('id', id)
+        .then(({ error }) => { if (error) console.error('Error deleting design link:', error.message); });
+    }
   }
 
   function handleOpenDiff(link) {

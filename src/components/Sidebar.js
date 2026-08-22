@@ -14,7 +14,7 @@ export default function Sidebar({
   onSelectPerformanceLab, onSelectCICDLab, onSelectAPILab, onSelectAutomationLab,
   onSelectEnvironments, onSelectTestPlans, onSelectRequirements, onSelectTCLibrary, onSelectDocLab,
   onSelectProject, onNewProject, onEditProject, onDeleteProject, onOpenCredentials,
-  onOpenVaultSettings, onOpenIntegrationSettings, onSelectTeamAdmin
+  onOpenVaultSettings, onOpenIntegrationSettings, onSelectTeamAdmin, onSelectBAST
 }) {
   const { t, lang, setLang } = useLanguage();
   const { role, setRole, logout } = useAuth();
@@ -42,6 +42,7 @@ export default function Sidebar({
     { id: 'testplans', label: t('sidebar.testPlans'), icon: <Target size={14} />, action: onSelectTestPlans },
     { id: 'requirements', label: t('sidebar.requirements'), icon: <CheckSquare size={14} />, action: onSelectRequirements },
     { id: 'tclibrary', label: t('sidebar.tcLibrary'), icon: <FileCode size={14} />, action: onSelectTCLibrary },
+    { id: 'bast', label: 'BAST & Laporan', icon: <CheckSquare size={14} />, action: onSelectBAST },
   ];
 
   const isActive = (v) =>

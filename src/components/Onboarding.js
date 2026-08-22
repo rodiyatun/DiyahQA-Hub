@@ -1,20 +1,91 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
   CheckCircle, ArrowRight, ArrowLeft, X,
   FlaskConical, Bug, LayoutDashboard, Users,
   Zap, Shield, Activity, Code2, FolderPlus,
-  Sparkles, ChevronRight
+  Sparkles, ChevronRight, FileText, Lock, UserCircle
 } from 'lucide-react';
 import './Onboarding.css';
 
+const EULA_TEXT = `PERJANJIAN LISENSI PENGGUNA AKHIR (EULA)
+DiyahQA Hub — Versi 1.1.2
+Berlaku sejak: 15 Agustus 2026
+
+Dengan menggunakan aplikasi ini, Anda menyetujui syarat dan ketentuan berikut:
+
+1. LISENSI PENGGUNAAN
+   DiyahQA Hub diberikan lisensi terbatas, non-eksklusif, dan tidak dapat dipindahtangankan kepada Anda untuk digunakan sesuai dengan perjanjian ini.
+
+2. PEMBATASAN
+   Anda tidak diperbolehkan untuk: (a) mendistribusikan ulang atau menjual kembali aplikasi, (b) merekayasa balik kode sumber, (c) menghapus pemberitahuan hak cipta.
+
+3. DATA PENGGUNA
+   Data yang Anda masukkan ke dalam aplikasi adalah milik Anda. Kami menyimpan data di Supabase Cloud dengan enkripsi standar industri.
+
+4. PEMBARUAN
+   Kami berhak memperbarui aplikasi secara berkala. Pembaruan penting akan diberitahukan melalui notifikasi dalam aplikasi.
+
+5. PENGHENTIAN
+   Lisensi ini berlaku hingga dihentikan. Lisensi akan berakhir secara otomatis jika Anda melanggar perjanjian ini.
+
+6. PENAFIAN GARANSI
+   Aplikasi diberikan "APA ADANYA" tanpa garansi apa pun, tersurat maupun tersirat.
+
+7. BATASAN TANGGUNG JAWAB
+   Dalam situasi apa pun, DiyahQA Hub tidak bertanggung jawab atas kerugian tidak langsung atau kerusakan yang timbul dari penggunaan aplikasi.
+
+8. HUKUM YANG BERLAKU
+   Perjanjian ini diatur berdasarkan hukum Republik Indonesia.`;
+
+const PP_TEXT = `KEBIJAKAN PRIVASI
+DiyahQA Hub — Versi 1.1.2
+Berlaku sejak: 15 Agustus 2026
+
+1. INFORMASI YANG KAMI KUMPULKAN
+   • Data akun: email, nama, dan role pengguna.
+   • Data kerja: project, test case, dan bug report yang Anda buat.
+   • Data teknis: log error anonim untuk perbaikan aplikasi.
+
+2. CARA KAMI MENGGUNAKAN DATA
+   • Menyediakan layanan aplikasi kepada Anda.
+   • Menyinkronkan data antar perangkat via Supabase.
+   • Meningkatkan kualitas dan performa aplikasi.
+
+3. BERBAGI DATA
+   Kami TIDAK menjual atau menyewakan data pribadi Anda kepada pihak ketiga mana pun.
+
+4. KEAMANAN DATA
+   Data Anda dilindungi dengan enkripsi TLS/SSL dan Row Level Security (RLS) di Supabase.
+
+5. HAK ANDA
+   Anda berhak untuk: mengakses, memperbarui, mengunduh, atau menghapus data Anda kapan saja.
+
+6. RETENSI DATA
+   Data disimpan selama akun Anda aktif. Penghapusan akun akan menghapus semua data Anda dalam 30 hari.
+
+7. HUBUNGI KAMI
+   Pertanyaan privasi: support@diyahqa.com`;
+
 const STEPS = [
+  {
+    id: 'eula',
+    title: 'Syarat & Ketentuan',
+    subtitle: 'Harap baca dan setujui sebelum melanjutkan.',
+    type: 'eula',
+  },
   {
     id: 'welcome',
     title: 'Selamat Datang di DiyahQA Hub! 🎉',
     subtitle: 'Platform QA terpadu untuk tim Anda. Mari kita kenalkan fitur-fitur utamanya.',
     illustration: '🔬',
     type: 'welcome',
+  },
+  {
+    id: 'profile',
+    title: 'Siapa Anda?',
+    subtitle: 'Bantu kami menyesuaikan pengalaman Anda.',
+    type: 'profile',
   },
   {
     id: 'features',
@@ -39,18 +110,6 @@ const STEPS = [
     type: 'create_project',
   },
   {
-    id: 'ai',
-    title: 'AI QA Assistant Siap Membantu!',
-    subtitle: 'DiyahQA Hub dilengkapi AI Agentic yang bisa membantu pekerjaan QA Anda.',
-    type: 'ai_intro',
-    tips: [
-      { emoji: '🤖', text: 'Ketik "buka bug report" untuk navigasi otomatis' },
-      { emoji: '📊', text: 'Minta AI menganalisis tren bug dan prediksi risiko' },
-      { emoji: '⚡', text: 'Jadwalkan test otomatis dengan perintah bahasa natural' },
-      { emoji: '✍️', text: 'Generate test case dari deskripsi fitur secara otomatis' },
-    ]
-  },
-  {
     id: 'done',
     title: 'Semua Siap! 🚀',
     subtitle: 'Anda sudah siap menggunakan DiyahQA Hub. Selamat bekerja!',
@@ -58,8 +117,20 @@ const STEPS = [
   }
 ];
 
+const ROLES = [
+  { id: 'qa_engineer', label: 'QA Engineer', emoji: '🧪', desc: 'Menjalankan test & melaporkan bug' },
+  { id: 'qa_lead', label: 'QA Lead / Manager', emoji: '👑', desc: 'Memimpin tim QA & review laporan' },
+  { id: 'developer', label: 'Developer', emoji: '💻', desc: 'Developer yang juga menangani QA' },
+  { id: 'project_manager', label: 'Project Manager', emoji: '📋', desc: 'Memonitor kualitas dari dashboard' },
+];
+
 export default function Onboarding({ onComplete, onCreateProject }) {
   const [step, setStep] = useState(0);
+  const [eulaAccepted, setEulaAccepted] = useState(false);
+  const [ppAccepted, setPpAccepted] = useState(false);
+  const [showEulaText, setShowEulaText] = useState(false);
+  const [showPpText, setShowPpText] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectDesc, setProjectDesc] = useState('');
   const [creating, setCreating] = useState(false);
@@ -104,23 +175,38 @@ export default function Onboarding({ onComplete, onCreateProject }) {
     }
   }
 
-  function handleSkipProject() {
-    goNext();
-  }
-
   function handleFinish() {
     localStorage.setItem('onboarding_completed', 'true');
+    localStorage.setItem('eula_accepted', 'true');
+    localStorage.setItem('user_role', selectedRole);
     if (onComplete) onComplete();
   }
+
+  const canProceedEula = eulaAccepted && ppAccepted;
 
   return (
     <div className="onboarding-overlay">
       <div className={`onboarding-modal ${animating ? 'fade-out' : 'fade-in'}`}>
 
         {/* Close Button */}
-        <button className="onboarding-close" onClick={handleFinish} title="Lewati onboarding">
-          <X size={18} />
-        </button>
+        {currentStep.type !== 'eula' && (
+          <button className="onboarding-close" onClick={handleFinish} title="Lewati onboarding">
+            <X size={18} />
+          </button>
+        )}
+
+        {/* Progress Bar */}
+        <div className="onboarding-progress-bar">
+          <div
+            className="onboarding-progress-fill"
+            style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          />
+        </div>
+
+        {/* Step Counter */}
+        <div className="onboarding-step-counter">
+          {step + 1} / {STEPS.length}
+        </div>
 
         {/* Progress Dots */}
         <div className="onboarding-progress">
@@ -131,6 +217,78 @@ export default function Onboarding({ onComplete, onCreateProject }) {
 
         {/* Content */}
         <div className="onboarding-content">
+
+          {/* EULA STEP */}
+          {currentStep.type === 'eula' && (
+            <div className="onboarding-eula">
+              <div className="ob-eula-header">
+                <div className="ob-eula-icon"><FileText size={32} color="#6366f1" /></div>
+                <h2>{currentStep.title}</h2>
+                <p className="ob-subtitle">{currentStep.subtitle}</p>
+              </div>
+
+              <div className="ob-eula-checks">
+                {/* EULA */}
+                <div className="ob-eula-item">
+                  <label className="ob-eula-label">
+                    <input
+                      type="checkbox"
+                      checked={eulaAccepted}
+                      onChange={e => setEulaAccepted(e.target.checked)}
+                    />
+                    <span>
+                      Saya setuju dengan{' '}
+                      <button className="ob-link" onClick={() => setShowEulaText(v => !v)}>
+                        Perjanjian Lisensi Pengguna (EULA)
+                      </button>
+                    </span>
+                  </label>
+                  {showEulaText && (
+                    <div className="ob-legal-text">
+                      <pre>{EULA_TEXT}</pre>
+                    </div>
+                  )}
+                </div>
+
+                {/* Privacy Policy */}
+                <div className="ob-eula-item">
+                  <label className="ob-eula-label">
+                    <input
+                      type="checkbox"
+                      checked={ppAccepted}
+                      onChange={e => setPpAccepted(e.target.checked)}
+                    />
+                    <span>
+                      Saya menyetujui{' '}
+                      <button className="ob-link" onClick={() => setShowPpText(v => !v)}>
+                        Kebijakan Privasi
+                      </button>
+                      {' '}termasuk pengolahan data pribadi saya.
+                    </span>
+                  </label>
+                  {showPpText && (
+                    <div className="ob-legal-text">
+                      <pre>{PP_TEXT}</pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="ob-eula-info">
+                <Lock size={13} />
+                <span>Data Anda aman. Kami tidak menjual data ke pihak ketiga.</span>
+              </div>
+
+              <button
+                className="ob-btn-primary"
+                onClick={goNext}
+                disabled={!canProceedEula}
+                style={{ marginTop: 16, width: '100%' }}
+              >
+                Setuju & Lanjutkan <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
 
           {/* WELCOME */}
           {currentStep.type === 'welcome' && (
@@ -145,6 +303,29 @@ export default function Onboarding({ onComplete, onCreateProject }) {
                 <span className="ob-badge"><FlaskConical size={13} /> Desktop App</span>
                 <span className="ob-badge"><Sparkles size={13} /> AI Powered</span>
                 <span className="ob-badge"><Shield size={13} /> Cloud Sync</span>
+              </div>
+            </div>
+          )}
+
+          {/* PROFILE */}
+          {currentStep.type === 'profile' && (
+            <div className="onboarding-profile">
+              <div className="ob-profile-icon"><UserCircle size={36} color="#6366f1" /></div>
+              <h2>{currentStep.title}</h2>
+              <p className="ob-subtitle">{currentStep.subtitle}</p>
+              <div className="ob-roles-grid">
+                {ROLES.map(role => (
+                  <button
+                    key={role.id}
+                    className={`ob-role-card ${selectedRole === role.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedRole(role.id)}
+                  >
+                    <span className="ob-role-emoji">{role.emoji}</span>
+                    <div className="ob-role-label">{role.label}</div>
+                    <div className="ob-role-desc">{role.desc}</div>
+                    {selectedRole === role.id && <CheckCircle size={16} color="#6366f1" className="ob-role-check" />}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -213,31 +394,11 @@ export default function Onboarding({ onComplete, onCreateProject }) {
                   >
                     {creating ? 'Membuat...' : '+ Buat Project Sekarang'}
                   </button>
-                  <button className="ob-btn-skip" onClick={handleSkipProject}>
+                  <button className="ob-btn-skip" onClick={goNext}>
                     Lewati, buat nanti
                   </button>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* AI INTRO */}
-          {currentStep.type === 'ai_intro' && (
-            <div className="onboarding-ai">
-              <div className="ob-ai-avatar">🤖</div>
-              <h2>{currentStep.title}</h2>
-              <p className="ob-subtitle">{currentStep.subtitle}</p>
-              <div className="ob-ai-tips">
-                {currentStep.tips.map((tip, i) => (
-                  <div className="ob-ai-tip" key={i}>
-                    <span className="ob-ai-tip-emoji">{tip.emoji}</span>
-                    <span>{tip.text}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="ob-ai-hint">
-                💡 Aktifkan <strong>AI Mode</strong> dari toggle di pojok kanan atas Dashboard, lalu klik tombol <strong>🤖 AI QA</strong> di sudut kanan bawah.
-              </div>
             </div>
           )}
 
@@ -248,10 +409,10 @@ export default function Onboarding({ onComplete, onCreateProject }) {
               <h1>{currentStep.title}</h1>
               <p>{currentStep.subtitle}</p>
               <div className="ob-checklist">
+                <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> EULA & Privacy Policy disetujui</div>
                 <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> Dashboard Analytics</div>
                 <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> Test Case Management</div>
                 <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> Bug Reports</div>
-                <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> AI QA Assistant</div>
                 <div className="ob-check-item"><CheckCircle size={16} color="#22c55e" /> Cloud Sync (Supabase)</div>
               </div>
               <button className="ob-btn-primary ob-btn-finish" onClick={handleFinish}>
@@ -262,7 +423,7 @@ export default function Onboarding({ onComplete, onCreateProject }) {
         </div>
 
         {/* Navigation */}
-        {currentStep.type !== 'done' && currentStep.type !== 'create_project' && (
+        {currentStep.type !== 'done' && currentStep.type !== 'create_project' && currentStep.type !== 'eula' && (
           <div className="onboarding-nav">
             {!isFirst && (
               <button className="ob-btn-back" onClick={goPrev}>
@@ -270,7 +431,11 @@ export default function Onboarding({ onComplete, onCreateProject }) {
               </button>
             )}
             <div style={{ flex: 1 }} />
-            <button className="ob-btn-next" onClick={goNext}>
+            <button
+              className="ob-btn-next"
+              onClick={goNext}
+              disabled={currentStep.type === 'profile' && !selectedRole}
+            >
               {isLast ? 'Selesai' : 'Selanjutnya'} <ArrowRight size={16} />
             </button>
           </div>

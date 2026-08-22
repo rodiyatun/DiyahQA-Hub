@@ -14,6 +14,7 @@ import TestPlanPage from './components/TestPlan/TestPlanPage';
 import RequirementsPage from './components/Requirements/RequirementsPage';
 import TCLibraryPage from './components/TCLibrary/TCLibraryPage';
 import DocLabPage from './components/DocLab/DocLabPage';
+import BASTPage from './components/BAST/BASTPage';
 import VaultSettingsModal from './components/VaultSettingsModal';
 import IntegrationSettingsModal from './components/IntegrationSettingsModal';
 import ProjectModal from './components/ProjectModal';
@@ -57,6 +58,24 @@ export default function App() {
       if (!completed) setShowOnboarding(true);
     }
   }, [user]);
+
+  // Handle deep links from Electron main process
+  useEffect(() => {
+    if (window.api && window.api.onDeepLink) {
+      window.api.onDeepLink((url) => {
+        // url is something like diyahqahub://login#access_token=...
+        if (url.includes('#') || url.includes('?')) {
+          const params = url.substring(url.indexOf(url.includes('#') ? '#' : '?'));
+          // Set the hash so Supabase can read it
+          window.location.hash = params;
+          console.log("Deep link received, hash updated:", params);
+        }
+      });
+      return () => {
+        if (window.api.offDeepLink) window.api.offDeepLink();
+      };
+    }
+  }, []);
 
   async function loadProjects() {
     try {
@@ -161,6 +180,7 @@ export default function App() {
   function handleSelectTCLibrary()     { setSelectedProject(null); setView('tclibrary'); }
   function handleSelectDocLab()        { setSelectedProject(null); setView('doclab'); }
   function handleSelectTeamAdmin()     { setSelectedProject(null); setView('teamadmin'); }
+  function handleSelectBAST()          { setSelectedProject(null); setView('bast'); }
 
   function handleCreateBugFromTC(tc) {
     setBugPrefillData({
@@ -239,6 +259,7 @@ export default function App() {
             onSelectTCLibrary={handleSelectTCLibrary}
             onSelectDocLab={handleSelectDocLab}
             onSelectTeamAdmin={handleSelectTeamAdmin}
+            onSelectBAST={handleSelectBAST}
             onOpenCredentials={(p) => setCredentialProject(p)}
             onEditProject={(p) => setEditingProject(p)}
             onDeleteProject={handleDeleteProject}
@@ -278,13 +299,14 @@ export default function App() {
             {view === 'cicdlab' && <CICDLabPage />}
             {view === 'apilab' && <APILabPage />}
             {view === 'automationlab' && <AutomationLabPage />}
-            {(view === 'environments' || view === 'testplans' || view === 'requirements' || view === 'tclibrary' || view === 'doclab') && (
+            {(view === 'environments' || view === 'testplans' || view === 'requirements' || view === 'tclibrary' || view === 'doclab' || view === 'bast') && (
               <div style={{ padding: 24, height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
                 {view === 'environments' && <EnvironmentManager projects={projects} />}
                 {view === 'testplans'    && <TestPlanPage projects={projects} selectedProject={selectedProject} />}
                 {view === 'requirements' && <RequirementsPage projects={projects} selectedProject={selectedProject} />}
                 {view === 'tclibrary'    && <TCLibraryPage projects={projects} selectedProject={selectedProject} />}
                 {view === 'doclab'       && <DocLabPage projects={projects} />}
+                {view === 'bast'         && <BASTPage projects={projects} />}
               </div>
             )}
           </main>

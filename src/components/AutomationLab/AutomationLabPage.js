@@ -44,6 +44,27 @@ function ProjectsTab({ onSelectProject }) {
     setProjects(list || []);
   }
 
+  async function handleImport() {
+    if (!window.api.waImportProject) {
+      return alert('Fitur Import Project hanya tersedia di DiyahQA Hub versi Desktop (.dmg / .exe).');
+    }
+    setCreating(true);
+    setSetupLogs([{ type: 'info', text: 'Membuka dialog import...' }]);
+    const result = await window.api.waImportProject();
+    if (result && result.success) {
+      setSetupLogs(p => [...p, { type: 'success', text: `Project '${result.name}' berhasil diimpor!` }]);
+      await loadProjects();
+      setCreating(false);
+    } else if (result && result.error) {
+      setSetupLogs(p => [...p, { type: 'error', text: `Gagal import: ${result.error}` }]);
+      setCreating(false);
+    } else {
+      // Canceled
+      setSetupLogs([]);
+      setCreating(false);
+    }
+  }
+
   async function handleCreate() {
     if (!form.name.trim()) return alert('Nama project wajib diisi');
     setCreating(true);
@@ -114,13 +135,18 @@ function ProjectsTab({ onSelectProject }) {
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           Projects di <code style={{ color: 'var(--text-primary)' }}>~/DiyahQA-Projects/</code>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>+ New Project</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleImport} disabled={creating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {creating ? <RefreshCw size={14} className="spin" /> : <Folder size={14} />} Import Project
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>+ New Project</button>
+        </div>
       </div>
       {projects.length === 0 && (
         <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 12 }}>
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}><Bot size={32}/></div>
           <div style={{ fontSize: 14, marginBottom: 4 }}>Belum ada project</div>
-          <div style={{ fontSize: 12 }}>Klik "+ New Project" untuk memulai</div>
+          <div style={{ fontSize: 12 }}>Klik "+ New Project" atau "Import Project" untuk memulai</div>
         </div>
       )}
       <div className="proj-grid">
@@ -150,22 +176,22 @@ function ScriptEditorTab({ project }) {
   useEffect(() => { loadFiles(); }, [project]);
 
   async function loadFiles() {
-    const list = await window.api.waListFiles({ projPath: project.path, dir: 'tests' });
+    const list = await window.api.waListFiles({ projPath: project.path, dir: '' });
     setFiles(list || []);
     if (list?.length && !activeFile) openFile(list[0].name);
   }
   async function openFile(name) {
-    const text = await window.api.waReadFile({ projPath: project.path, relPath: `tests/${name}` });
+    const text = await window.api.waReadFile({ projPath: project.path, relPath: name });
     setActiveFile(name); setContent(text || ''); setDirty(false);
   }
   async function saveFile() {
     if (!activeFile) return;
-    await window.api.waWriteFile({ projPath: project.path, relPath: `tests/${activeFile}`, content });
+    await window.api.waWriteFile({ projPath: project.path, relPath: activeFile, content });
     setDirty(false);
   }
   async function deleteFile(name) {
     if (!window.confirm(`Hapus ${name}?`)) return;
-    await window.api.waDeleteFile({ projPath: project.path, relPath: `tests/${name}` });
+    await window.api.waDeleteFile({ projPath: project.path, relPath: name });
     await loadFiles();
     if (activeFile === name) { setActiveFile(null); setContent(''); }
   }
@@ -173,13 +199,15 @@ function ScriptEditorTab({ project }) {
   return (
     <div className="wa-layout">
       <div className="wa-sidebar">
-        <div className="wa-sidebar-header">tests/
+        <div className="wa-sidebar-header">Script Files
           <button className="btn btn-ghost btn-icon btn-sm" onClick={() => {
-            const n = window.prompt('Nama file (.spec.ts):');
+            const n = window.prompt('Nama file baru (.spec.ts):');
             if (!n) return;
             const name = n.endsWith('.spec.ts') || n.endsWith('.ts') ? n : n + '.spec.ts';
-            window.api.waWriteFile({ projPath: project.path, relPath: `tests/${name}`, content: `import { test, expect } from '@playwright/test';\n\ntest('${name.replace('.spec.ts','')}', async ({ page }) => {\n  // TODO\n});\n` })
-              .then(() => { loadFiles(); openFile(name); });
+            const defaultFolder = 'tests/';
+            const fullName = name.includes('/') ? name : defaultFolder + name;
+            window.api.waWriteFile({ projPath: project.path, relPath: fullName, content: `import { test, expect } from '@playwright/test';\n\ntest('${name.replace('.spec.ts','')}', async ({ page }) => {\n  // TODO\n});\n` })
+              .then(() => { loadFiles(); openFile(fullName); });
           }}>+</button>
         </div>
         {files.filter(f => !f.isDir).map(f => (
@@ -195,7 +223,7 @@ function ScriptEditorTab({ project }) {
       <div className="wa-editor-area">
         <div className="wa-editor-toolbar">
           {activeFile && <>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>tests/{activeFile}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{activeFile}</span>
             {dirty && <span style={{ fontSize: 10, color: '#f59e0b', marginLeft: 4 }}>●</span>}
             <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }} onClick={saveFile} disabled={!dirty}><Save size={14}/> Save</button>
           </>}
@@ -317,7 +345,7 @@ function ExecutionTab({ project }) {
 
   useEffect(() => {
     window.api.waOnLog(log => setLogs(p => [...p, log]));
-    window.api.waListFiles({ projPath: project.path, dir: 'tests' }).then(list => {
+    window.api.waListFiles({ projPath: project.path, dir: '' }).then(list => {
       setFiles((list || []).filter(f => !f.isDir && f.name.endsWith('.spec.ts')));
     });
     return () => window.api.waOffLog();
@@ -325,7 +353,7 @@ function ExecutionTab({ project }) {
 
   async function run() {
     setLogs([]); setRunning(true);
-    await window.api.waRun({ projPath: project.path, mode, file: selectedFile ? `tests/${selectedFile}` : undefined, grep: grep || undefined });
+    await window.api.waRun({ projPath: project.path, mode, file: selectedFile || undefined, grep: grep || undefined });
     setRunning(false);
   }
   async function stop() {

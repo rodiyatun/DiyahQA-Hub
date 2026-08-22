@@ -26,8 +26,8 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
   const [editingTC, setEditingTC] = useState(null);
   const [detailTC, setDetailTC] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [sortField, setSortField] = useState('created_at');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortField, setSortField] = useState('no');
+  const [sortDir, setSortDir] = useState('asc');
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [playwrightTC, setPlaywrightTC] = useState(null);
   const [activeTab, setActiveTab] = useState('testcases'); // testcases | design
@@ -58,29 +58,44 @@ export default function TestCaseList({ project, onCreateBugFromTC }) {
     if (filterStatus) result = result.filter(tc => tc.status === filterStatus);
     if (filterModule) result = result.filter(tc => tc.module === filterModule);
     result.sort((a, b) => {
-      const av = a[sortField] || '';
-      const bv = b[sortField] || '';
-      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      const av = String(a[sortField] || '');
+      const bv = String(b[sortField] || '');
+      // Use numeric sorting so that TC-2 comes before TC-10
+      return sortDir === 'asc' 
+        ? av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' }) 
+        : bv.localeCompare(av, undefined, { numeric: true, sensitivity: 'base' });
     });
     setFiltered(result);
   }, [testcases, search, filterStatus, filterModule, sortField, sortDir]);
 
   async function loadTestcases() {
     try {
-      let query = supabase
-        .from('testcases')
-        .select('*')
-        .eq('project_id', project.id)
-        .order('created_at', { ascending: false });
+      // Paginate to bypass Supabase 1000-row default limit
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        let query = supabase
+          .from('testcases')
+          .select('*')
+          .eq('project_id', project.id)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true }) // Deterministic sort for pagination
+          .range(from, from + pageSize - 1);
 
-      // Include: testcases that belong to active workspace OR have no workspace (legacy data)
-      if (activeWorkspaceId) {
-        query = query.or(`workspace_id.eq.${activeWorkspaceId},workspace_id.is.null`);
+        if (activeWorkspaceId) {
+          query = query.or(`workspace_id.eq.${activeWorkspaceId},workspace_id.is.null`);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allData = [...allData, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setTestcases(data || []);
+      setTestcases(allData);
       setSelected([]);
     } catch (err) {
       console.error(err);

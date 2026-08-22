@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, AUTH_REDIRECT_URL } from '../lib/supabaseClient';
 import { Mail, Lock, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 import './Login.css';
 
@@ -18,9 +18,13 @@ export default function Login() {
     setError(null);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: AUTH_REDIRECT_URL }
+        });
         if (error) throw error;
-        alert('Check your email for the login link!');
+        alert('Cek email Anda untuk konfirmasi pendaftaran!');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -38,7 +42,7 @@ export default function Login() {
     setError(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
+        redirectTo: AUTH_REDIRECT_URL
       });
       if (error) throw error;
       setResetSent(true);

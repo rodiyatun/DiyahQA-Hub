@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.git/
+mac-arm64/
+*.dmg
+*.zip
+*.blockmap

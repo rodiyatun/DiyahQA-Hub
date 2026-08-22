@@ -26,10 +26,41 @@ export function AuthProvider({ children }) {
       if (!error && data) {
         setRole(data.role);
       } else {
-        // Fallback or handle error
         setRole('viewer'); 
       }
     };
+
+    // ── Handle deep link tokens (from Electron custom protocol) ──────────────
+    // When app opens via diyahqahub://auth#access_token=... or
+    // when App.js sets window.location.hash from a deep link
+    const trySetSessionFromHash = async () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      // Parse params from hash like: #access_token=xxx&refresh_token=yyy&type=recovery
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type'); // 'recovery' | 'signup' | 'magiclink'
+
+      if (accessToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || ''
+        });
+        if (!error && data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          if (type === 'recovery') {
+            setRecoveryMode(true);
+          }
+          // Clear hash from URL after reading
+          window.location.hash = '';
+        }
+      }
+    };
+
+    trySetSessionFromHash();
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {

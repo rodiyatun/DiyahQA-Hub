@@ -100,6 +100,8 @@ contextBridge.exposeInMainWorld('api', {
   waOnLog: (callback) => ipcRenderer.on('wa-run-log', (_, data) => callback(data)),
   waOnSetupLog: (callback) => ipcRenderer.on('wa-setup-log', (_, data) => callback(data)),
   waOffLog: () => { ipcRenderer.removeAllListeners('wa-run-log'); ipcRenderer.removeAllListeners('wa-setup-log'); },
+  waImportProject: () => ipcRenderer.invoke('wa-import-project'),
+
 
   // Test Data Manager
   waReadDataFiles:  (data) => ipcRenderer.invoke('wa-read-data-files', data),
@@ -175,4 +177,8 @@ contextBridge.exposeInMainWorld('api', {
   syncPlaneStatus:         (data) => ipcRenderer.invoke('sync-plane-status', data),
   savePlaneConfig:         (data) => ipcRenderer.invoke('save-plane-config', data),
   getPlaneConfig:          ()     => ipcRenderer.invoke('get-plane-config'),
+
+  // Deep linking
+  onDeepLink: (callback) => ipcRenderer.on('deep-link', (_, url) => callback(url)),
+  offDeepLink: () => ipcRenderer.removeAllListeners('deep-link'),
 });
