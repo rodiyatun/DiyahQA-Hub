@@ -39,15 +39,18 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
   useEffect(() => {
     loadStats();
     loadProjectStats();
-  }, [projects]);
-
-  useEffect(() => {
     loadBugStats();
     loadBastStats();
-  }, []);
+  }, [projects]);
 
   async function loadStats() {
     try {
+      if (!projects || projects.length === 0) {
+        setStats({ total: 0, passRate: 0, byStatus: [], pass: 0, fail: 0, pending: 0, recentHistory: [] });
+        return;
+      }
+      const projectIds = projects.map(p => p.id);
+
       // Fetch ALL testcases with pagination (Supabase default limit = 1000)
       let allData = [];
       let from = 0;
@@ -56,6 +59,7 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
         const { data, error } = await supabase
           .from('testcases')
           .select('status, project_id')
+          .in('project_id', projectIds)
           .range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -81,7 +85,8 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
 
       const { data: historyData } = await supabase
         .from('status_history')
-        .select('*')
+        .select('*, testcases!inner(project_id)')
+        .in('testcases.project_id', projectIds)
         .order('changed_at', { ascending: false })
         .limit(10);
 
@@ -94,7 +99,11 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
 
   async function loadProjectStats() {
     try {
-      if (!projects || projects.length === 0) return;
+      if (!projects || projects.length === 0) {
+        setProjectStats([]);
+        return;
+      }
+      const projectIds = projects.map(p => p.id);
 
       // Paginate to get all testcases
       let allData = [];
@@ -104,6 +113,7 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
         const { data, error } = await supabase
           .from('testcases')
           .select('project_id, status')
+          .in('project_id', projectIds)
           .range(from, from + pageSize - 1);
         if (error) break;
         if (!data || data.length === 0) break;
@@ -116,6 +126,7 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
       const { data: activeBugs } = await supabase
         .from('bug_reports')
         .select('project_id')
+        .in('project_id', projectIds)
         .in('status', ['Open', 'In Progress']);
 
       const bugCounts = {};
@@ -151,7 +162,17 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
 
   async function loadBugStats() {
     try {
-      const { data, error } = await supabase.from('bug_reports').select('status, severity');
+      if (!projects || projects.length === 0) {
+        setBugStats(null);
+        return;
+      }
+      const projectIds = projects.map(p => p.id);
+
+      const { data, error } = await supabase
+        .from('bug_reports')
+        .select('status, severity')
+        .in('project_id', projectIds);
+        
       if (error) throw error;
       
       const bugs = data || [];
@@ -215,8 +236,15 @@ export default function Dashboard({ projects, onSelectProject, selectedProject }
         setPredicting(false);
         return;
       }
-      const { data: testcases } = await supabase.from('testcases').select('title, status');
-      const { data: bugReports } = await supabase.from('bug_reports').select('title, status, severity');
+      
+      const projectIds = projects?.map(p => p.id) || [];
+      if (projectIds.length === 0) {
+        setPrediction('Tidak ada project di workspace ini untuk dianalisis.');
+        return;
+      }
+
+      const { data: testcases } = await supabase.from('testcases').select('title, status').in('project_id', projectIds);
+      const { data: bugReports } = await supabase.from('bug_reports').select('title, status, severity').in('project_id', projectIds);
       
       const allTCs = testcases || [];
       const allBugs = bugReports || [];

@@ -30,7 +30,7 @@ function getMemberCount(id) {
   return 5 + (idx % 30);
 }
 
-export default function ProjectGrid({ projects, onSelectProject, onCreateProject }) {
+export default function ProjectGrid({ projects, onSelectProject, onCreateProject, onMigrateData }) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('created_at_desc');
@@ -116,9 +116,11 @@ export default function ProjectGrid({ projects, onSelectProject, onCreateProject
           <Folder size={48} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
           <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Belum ada project</h3>
           <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Buat project pertama Anda dengan klik "+ Add Project"</p>
-          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={onCreateProject}>
-            <Plus size={14} /> Add Project
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: 16, justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={onCreateProject}>
+              <Plus size={14} /> Add Project
+            </button>
+          </div>
         </div>
       ) : (
         <div className="pg-grid">

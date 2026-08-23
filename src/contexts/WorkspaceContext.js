@@ -16,8 +16,12 @@ export function WorkspaceProvider({ children }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('workspaces')
-      .select('*')
-      .order('created_at', { ascending: true });
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching workspaces:', error);
+      alert('Gagal mengambil data workspace dari database: ' + error.message);
+    }
 
     if (!error && data && data.length > 0) {
       setWorkspaces(data);

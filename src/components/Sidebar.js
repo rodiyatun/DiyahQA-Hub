@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Folder, Plus, LayoutDashboard, Settings, Key, 
   Bug, Search, Database, Terminal, Shield, BookOpen, Layers, Target, CheckSquare, 
-  FileCode, Play, Lock, Activity, Globe, Plug, Edit2, Trash2, Users, LogOut
+  FileCode, Play, Lock, Activity, Globe, Plug, Edit2, Trash2, Users, LogOut, Figma
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,7 +12,7 @@ export default function Sidebar({
   projects, selectedProject, view,
   onSelectDashboard, onSelectAllProjects, onSelectBugReports, onSelectSQLLab, onSelectSecurityLab,
   onSelectPerformanceLab, onSelectCICDLab, onSelectAPILab, onSelectAutomationLab,
-  onSelectEnvironments, onSelectTestPlans, onSelectRequirements, onSelectTCLibrary, onSelectDocLab,
+  onSelectEnvironments, onSelectTestPlans, onSelectRequirements, onSelectTCLibrary, onSelectDocLab, onSelectAutomatedUX,
   onSelectProject, onNewProject, onEditProject, onDeleteProject, onOpenCredentials,
   onOpenVaultSettings, onOpenIntegrationSettings, onSelectTeamAdmin, onSelectBAST
 }) {
@@ -31,6 +31,7 @@ export default function Sidebar({
     { id: 'performancelab', label: t('sidebar.performance'), icon: <Activity size={16} />, action: onSelectPerformanceLab },
     { id: 'apilab', label: t('sidebar.api'), icon: <Search size={16} />, action: onSelectAPILab },
     { id: 'automationlab', label: t('sidebar.automation'), icon: <Play size={16} />, action: onSelectAutomationLab },
+    { id: 'automatedux', label: 'Automated UI/UX', icon: <Figma size={16} />, action: onSelectAutomatedUX },
     { id: 'cicdlab', label: t('sidebar.cicd'), icon: <Terminal size={16} />, action: onSelectCICDLab },
     { id: 'securitylab', label: t('sidebar.security'), icon: <Shield size={16} />, action: onSelectSecurityLab },
     { id: 'doclab', label: t('sidebar.doc'), icon: <BookOpen size={16} />, action: onSelectDocLab },

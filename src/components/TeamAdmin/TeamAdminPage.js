@@ -178,11 +178,14 @@ export default function TeamAdminPage() {
                 const fd = new FormData(e.target);
                 const name = fd.get('name');
                 if (!name) return;
-                const { error } = await supabase
+                const { data, error } = await supabase
                   .from('workspaces')
-                  .insert([{ name: name.trim() }]);
+                  .insert([{ name: name.trim() }])
+                  .select();
                 if (error) {
                   alert('Gagal membuat workspace: ' + error.message);
+                } else if (!data || data.length === 0) {
+                  alert('Gagal! Data sepertinya diblokir secara diam-diam oleh RLS Supabase.');
                 } else {
                   closeModal();
                   window.dispatchEvent(new Event('refresh-admin-data'));
@@ -203,25 +206,68 @@ export default function TeamAdminPage() {
 
             {/* Invite Member Modal */}
             {modalType === 'inviteMember' && (
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const email = fd.get('email');
                 if (!email) return;
-                const subject = encodeURIComponent("Undangan bergabung ke DiyahQA Hub");
-                const body = encodeURIComponent(`Halo!\n\nAnda telah diundang untuk bergabung ke DiyahQA Hub.\nSilakan mendaftar di aplikasi menggunakan email ini.\n\nURL Aplikasi: ${window.location.origin}\n\nSetelah mendaftar, Admin akan mengatur akses (Role) Anda.`);
-                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-                closeModal();
+                
+                const btn = e.target.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+                btn.innerText = 'Memproses...';
+                btn.disabled = true;
+                
+                const activeWorkspaceId = localStorage.getItem('active_workspace_id');
+                
+                // 1. Cari user di public.user_roles berdasarkan email (karena tidak bisa akses auth.users dari client)
+                const { data: existingUser, error: searchError } = await supabase
+                  .from('user_roles')
+                  .select('user_id')
+                  .eq('email', email)
+                  .limit(1)
+                  .maybeSingle();
+
+                if (existingUser) {
+                  // User sudah terdaftar, tambahkan ke workspace aktif
+                  const { error: insertError } = await supabase
+                    .from('user_roles')
+                    .insert({
+                      user_id: existingUser.user_id,
+                      email: email,
+                      role: 'viewer', // default role
+                      workspace_id: activeWorkspaceId
+                    });
+                    
+                  if (insertError) {
+                    if (insertError.code === '23505') { // Unique violation
+                      alert(`${email} sudah ada di Workspace ini.`);
+                    } else {
+                      alert(`Gagal menambahkan user: ${insertError.message}`);
+                    }
+                  } else {
+                    alert(`${email} berhasil ditambahkan ke Workspace!`);
+                    window.dispatchEvent(new Event('refresh-admin-data'));
+                    closeModal();
+                  }
+                } else {
+                  // User belum daftar sama sekali
+                  alert(`Email ${email} belum terdaftar di aplikasi. Kami akan mengirimkan email undangan (simulasi).`);
+                  window.dispatchEvent(new CustomEvent('invite-sent', { detail: { email } }));
+                  closeModal();
+                }
+                
+                btn.innerText = originalText;
+                btn.disabled = false;
               }}>
-                <h3 style={{marginTop: 0}}>Invite Member</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Undang anggota baru ke workspace ini. Ini akan membuka aplikasi email default Anda.</p>
+                <h3 style={{marginTop: 0}}>Tambahkan Member</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Masukkan email user yang sudah terdaftar untuk menambahkannya ke Workspace ini.</p>
                 <div style={{marginBottom: 16}}>
                   <label style={{display: 'block', fontSize: 12, marginBottom: 4}}>Alamat Email</label>
                   <input name="email" type="email" className="input" required autoFocus style={{width: '100%'}} placeholder="email@perusahaan.com" />
                 </div>
                 <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
                   <button type="button" className="btn btn-ghost" onClick={closeModal}>Batal</button>
-                  <button type="submit" className="btn btn-primary">Buka Email</button>
+                  <button type="submit" className="btn btn-primary">Tambahkan</button>
                 </div>
               </form>
             )}
@@ -235,18 +281,37 @@ export default function TeamAdminPage() {
 
 function RolesTab({ openModal }) {
   const [users, setUsers] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { 
     loadUsers(); 
+    const handleInviteSent = (e) => {
+      setPendingInvites(prev => [...prev, e.detail.email]);
+    };
+    const handleRefresh = () => loadUsers();
+    
+    window.addEventListener('invite-sent', handleInviteSent);
+    window.addEventListener('refresh-admin-data', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('invite-sent', handleInviteSent);
+      window.removeEventListener('refresh-admin-data', handleRefresh);
+    };
   }, []);
 
   async function loadUsers() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const activeWorkspaceId = localStorage.getItem('active_workspace_id');
+    let query = supabase.from('user_roles').select('*').order('created_at', { ascending: false });
+    
+    if (activeWorkspaceId) {
+      query = query.eq('workspace_id', activeWorkspaceId);
+    } else {
+      query = query.is('workspace_id', null);
+    }
+
+    const { data, error } = await query;
     
     if (!error && data) {
       setUsers(data);
@@ -261,10 +326,21 @@ function RolesTab({ openModal }) {
       alert('Anda tidak dapat mengubah role Anda sendiri.');
       return;
     }
-    const { error } = await supabase
+    
+    const activeWorkspaceId = localStorage.getItem('active_workspace_id');
+    
+    let query = supabase
       .from('user_roles')
       .update({ role: newRole })
-      .eq('id', userId);
+      .eq('user_id', userId);
+      
+    if (activeWorkspaceId) {
+      query = query.eq('workspace_id', activeWorkspaceId);
+    } else {
+      query = query.is('workspace_id', null);
+    }
+
+    const { error } = await query;
     
     if (!error) {
       loadUsers();
@@ -301,6 +377,28 @@ function RolesTab({ openModal }) {
               </tr>
             </thead>
             <tbody>
+              {pendingInvites.map((email, idx) => (
+                <tr key={`pending-${idx}`} style={{ opacity: 0.7 }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="user-avatar" style={{ background: '#64748b', opacity: 0.5 }}>
+                        {email.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{email} <span style={{fontSize: 10, background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: 8, marginLeft: 4}}>Menunggu</span></div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Undangan dikirim</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setPendingInvites(p => p.filter(e => e !== email))}>
+                      Batal
+                    </button>
+                  </td>
+                </tr>
+              ))}
               {users.map(user => {
                 const roleColor = { admin: '#6366f1', editor: '#22c55e', viewer: '#64748b' }[user.role] || '#64748b';
                 return (
@@ -319,7 +417,7 @@ function RolesTab({ openModal }) {
                     <td>
                       <select 
                         value={user.role} 
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                        onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
                         style={{ 
                           background: roleColor + '22', 
                           color: roleColor, 
@@ -537,14 +635,23 @@ function WorkspacesTab({ openModal }) {
   const [loading, setLoading] = useState(true);
   const [activeWs, setActiveWs] = useState(() => localStorage.getItem('active_workspace_id'));
 
-  useEffect(() => { loadWorkspaces(); }, []);
+  useEffect(() => { 
+    loadWorkspaces(); 
+    const handleRefresh = () => loadWorkspaces();
+    window.addEventListener('refresh-admin-data', handleRefresh);
+    return () => window.removeEventListener('refresh-admin-data', handleRefresh);
+  }, []);
 
   async function loadWorkspaces() {
     setLoading(true);
     const { data, error } = await supabase
       .from('workspaces')
-      .select('*')
-      .order('created_at', { ascending: true });
+      .select('*');
+      
+    if (error) {
+      console.error('Admin page workspaces fetch error:', error);
+    }
+    
     if (!error && data) setWorkspaces(data);
     setLoading(false);
   }

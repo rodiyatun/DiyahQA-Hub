@@ -13,23 +13,34 @@ export function AuthProvider({ children }) {
   // Temporarily default to 'admin' for authenticated users until role fetching is fully implemented
   const [role, setRole] = useState('admin');
 
-  useEffect(() => {
-    // Helper to fetch role from user_roles
-    const fetchRole = async (userId) => {
-      if (!userId) return;
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+  // Helper to fetch role from user_roles based on workspace
+  const refreshRole = async (userId, workspaceId = null) => {
+    if (!userId) {
+      setRole('viewer');
+      return;
+    }
+    
+    let query = supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
       
-      if (!error && data) {
-        setRole(data.role);
-      } else {
-        setRole('viewer'); 
-      }
-    };
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    } else {
+      query = query.is('workspace_id', null);
+    }
+    
+    const { data, error } = await query.single();
+    
+    if (!error && data) {
+      setRole(data.role);
+    } else {
+      setRole('viewer'); 
+    }
+  };
 
+  useEffect(() => {
     // ── Handle deep link tokens (from Electron custom protocol) ──────────────
     // When app opens via diyahqahub://auth#access_token=... or
     // when App.js sets window.location.hash from a deep link
@@ -67,7 +78,7 @@ export function AuthProvider({ children }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id).then(() => setLoading(false));
+        refreshRole(session.user.id, localStorage.getItem('active_workspace_id')).then(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -82,7 +93,7 @@ export function AuthProvider({ children }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id).then(() => setLoading(false));
+        refreshRole(session.user.id, localStorage.getItem('active_workspace_id')).then(() => setLoading(false));
       } else {
         setLoading(false);
       }

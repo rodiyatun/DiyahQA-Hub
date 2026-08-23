@@ -178,6 +178,9 @@ contextBridge.exposeInMainWorld('api', {
   savePlaneConfig:         (data) => ipcRenderer.invoke('save-plane-config', data),
   getPlaneConfig:          ()     => ipcRenderer.invoke('get-plane-config'),
 
+  // Automated UX
+  extractLiveStyles: (url) => ipcRenderer.invoke('extract-live-styles', url),
+
   // Deep linking
   onDeepLink: (callback) => ipcRenderer.on('deep-link', (_, url) => callback(url)),
   offDeepLink: () => ipcRenderer.removeAllListeners('deep-link'),

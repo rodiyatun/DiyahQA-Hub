@@ -302,7 +302,8 @@ function initDB() {
     saveDB();
 
     // Run Supabase background migration
-    migrateAllToSupabase();
+    // [DISABLED] App is now 100% Cloud-first. We don't want it uploading local DB on startup.
+    // migrateAllToSupabase();
   });
 }
 
@@ -3976,6 +3977,85 @@ ipcMain.handle('run-k6-script', async (event, scriptContent) => {
     k6.on('error', (err) => {
       if (fs.existsSync(tmpScript)) fs.unlinkSync(tmpScript);
       resolve({ success: false, error: err.message });
+    });
+  });
+});
+
+ipcMain.handle('extract-live-styles', async (event, url) => {
+  return new Promise((resolve) => {
+    // Buat invisible BrowserWindow
+    const extractorWin = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        webSecurity: false // allow cross-origin logic if needed, or just let it load
+      }
+    });
+
+    extractorWin.loadURL(url).catch(err => {
+      extractorWin.destroy();
+      resolve({ success: false, error: err.message });
+    });
+
+    extractorWin.webContents.on('did-finish-load', async () => {
+      try {
+        // Inject script to extract styles
+        const extracted = await extractorWin.webContents.executeJavaScript(`
+          (function() {
+            const styles = { colors: [], typography: [] };
+            
+            // Ekstrak warna dominan
+            const elements = document.querySelectorAll('*');
+            const colorCounts = {};
+            const fontCounts = {};
+            
+            elements.forEach(el => {
+              const comp = window.getComputedStyle(el);
+              
+              // Colors
+              const bg = comp.backgroundColor;
+              const color = comp.color;
+              if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                colorCounts[bg] = (colorCounts[bg] || 0) + 1;
+              }
+              if (color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+                colorCounts[color] = (colorCounts[color] || 0) + 1;
+              }
+              
+              // Typography
+              const font = comp.fontFamily;
+              if (font) {
+                fontCounts[font] = (fontCounts[font] || 0) + 1;
+              }
+            });
+            
+            // Helper: rgb to hex
+            function rgb2hex(rgb) {
+              const match = rgb.match(/^rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
+              if (!match) return rgb;
+              function hex(x) { return ("0" + parseInt(x).toString(16)).slice(-2); }
+              return "#" + hex(match[1]) + hex(match[2]) + hex(match[3]);
+            }
+            
+            // Urutkan berdasarkan frekuensi (top 10 colors)
+            const topColors = Object.entries(colorCounts).sort((a,b) => b[1] - a[1]).slice(0,10);
+            styles.colors = topColors.map(c => rgb2hex(c[0]).toUpperCase());
+            
+            // Urutkan berdasarkan frekuensi (top 5 fonts)
+            const topFonts = Object.entries(fontCounts).sort((a,b) => b[1] - a[1]).slice(0,5);
+            styles.typography = topFonts.map(f => f[0]);
+            
+            return styles;
+          })();
+        `);
+        
+        extractorWin.destroy();
+        resolve({ success: true, data: extracted });
+      } catch (err) {
+        extractorWin.destroy();
+        resolve({ success: false, error: err.message });
+      }
     });
   });
 });
