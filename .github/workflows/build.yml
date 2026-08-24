@@ -42,6 +42,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_build: true
           # Jika Anda ingin menandatangani aplikasi (code signing), Anda dapat mengatur secret berikut:
           # mac_certs: ${{ secrets.MAC_CERTS }}
           # mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
