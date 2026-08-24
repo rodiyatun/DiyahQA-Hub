@@ -43,6 +43,18 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_build: true
+          # release: true # Aktifkan ini jika ingin otomatis membuat Release di GitHub
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: diyahqa-hub-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
           # Jika Anda ingin menandatangani aplikasi (code signing), Anda dapat mengatur secret berikut:
           # mac_certs: ${{ secrets.MAC_CERTS }}
           # mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
