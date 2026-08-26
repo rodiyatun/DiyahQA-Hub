@@ -1,0 +1,14 @@
+2026/08/24-15:49:44.358 8893bd Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/24/IndexedDB/indexeddb.leveldb/MANIFEST-000001
+2026/08/24-15:49:44.359 8893bd Recovering log #16
+2026/08/24-15:49:44.359 8893bd Reusing old log /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/24/IndexedDB/indexeddb.leveldb/000016.log 
+2026/08/24-15:49:44.359 8893bd Delete type=2 #15
+2026/08/24-15:49:44.391 8893c0 Level-0 table #21: started
+2026/08/24-15:49:44.392 8893c0 Level-0 table #21: 945 bytes OK
+2026/08/24-15:49:44.394 8893c0 Delete type=0 #16
+2026/08/24-15:49:44.394 8893be Manual compaction at level-0 from '\x00\x09\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at '\x00\x09\x00\x00\x05' @ 297 : 1
+2026/08/24-15:49:44.394 8893be Compacting 1@0 + 1@1 files
+2026/08/24-15:49:44.395 8893be Generated table #22@0: 72 keys, 1523 bytes
+2026/08/24-15:49:44.395 8893be Compacted 1@0 + 1@1 files => 1523 bytes
+2026/08/24-15:49:44.397 8893be compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-15:49:44.397 8893be Delete type=2 #21
+2026/08/24-15:49:44.397 8893be Manual compaction at level-0 from '\x00\x09\x00\x00\x05' @ 297 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -1,0 +1,48 @@
+2026/08/24-16:42:45.290 8893bd Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/chrome-extension_mdljmlgokccncglfobogbfjgcijldnaj_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-16:42:45.291 8893bd Recovering log #184
+2026/08/24-16:42:45.332 8893bd Reusing old log /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/chrome-extension_mdljmlgokccncglfobogbfjgcijldnaj_0.indexeddb.leveldb/000184.log 
+2026/08/24-16:43:43.229 8893be Level-0 table #189: started
+2026/08/24-16:43:43.255 8893be Level-0 table #189: 2004776 bytes OK
+2026/08/24-16:43:43.259 8893be Delete type=0 #184
+2026/08/24-16:43:44.236 8893be Compacting 1@1 + 1@2 files
+2026/08/24-16:43:44.259 8893be Generated table #190@1: 31044 keys, 1448135 bytes
+2026/08/24-16:43:44.259 8893be Compacted 1@1 + 1@2 files => 1448135 bytes
+2026/08/24-16:43:44.260 8893be compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/24-16:43:44.261 8893be Delete type=2 #189
+2026/08/24-16:43:44.261 8893be Delete type=2 #186
+2026/08/24-16:53:12.809 8893be Level-0 table #192: started
+2026/08/24-16:53:12.844 8893be Level-0 table #192: 1774636 bytes OK
+2026/08/24-16:53:12.851 8893be Delete type=0 #188
+2026/08/24-16:53:12.977 8893be Compacting 1@1 + 1@2 files
+2026/08/24-16:53:13.009 8893be Generated table #193@1: 32631 keys, 2078155 bytes
+2026/08/24-16:53:13.009 8893be Compacted 1@1 + 1@2 files => 2078155 bytes
+2026/08/24-16:53:13.011 8893be compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/24-16:53:13.011 8893be Delete type=2 #190
+2026/08/24-16:53:13.011 8893be Delete type=2 #192
+2026/08/24-17:03:19.814 8893be Level-0 table #195: started
+2026/08/24-17:03:19.842 8893be Level-0 table #195: 1981168 bytes OK
+2026/08/24-17:03:19.844 8893be Delete type=0 #191
+2026/08/24-17:03:19.944 8893be Compacting 1@1 + 1@2 files
+2026/08/24-17:03:19.969 8893be Generated table #196@1: 33342 keys, 2033627 bytes
+2026/08/24-17:03:19.969 8893be Compacted 1@1 + 1@2 files => 2033627 bytes
+2026/08/24-17:03:19.972 8893be compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/24-17:03:19.972 8893be Delete type=2 #195
+2026/08/24-17:03:19.972 8893be Delete type=2 #193
+2026/08/24-17:11:36.071 8893be Level-0 table #198: started
+2026/08/24-17:11:36.106 8893be Level-0 table #198: 2308022 bytes OK
+2026/08/24-17:11:36.109 8893be Delete type=0 #194
+2026/08/24-17:11:36.258 8893be Compacting 1@1 + 1@2 files
+2026/08/24-17:11:36.291 8893be Generated table #199@1: 33484 keys, 1560569 bytes
+2026/08/24-17:11:36.291 8893be Compacted 1@1 + 1@2 files => 1560569 bytes
+2026/08/24-17:11:36.293 8893be compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/24-17:11:36.293 8893be Delete type=2 #198
+2026/08/24-17:11:36.293 8893be Delete type=2 #196
+2026/08/24-17:19:55.185 8893be Level-0 table #201: started
+2026/08/24-17:19:55.300 8893be Level-0 table #201: 2036963 bytes OK
+2026/08/24-17:19:55.307 8893be Delete type=0 #197
+2026/08/24-17:24:44.042 8893be Compacting 1@1 + 1@2 files
+2026/08/24-17:24:44.077 8893be Generated table #202@1: 33096 keys, 1015644 bytes
+2026/08/24-17:24:44.077 8893be Compacted 1@1 + 1@2 files => 1015644 bytes
+2026/08/24-17:24:44.078 8893be compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/24-17:24:44.078 8893be Delete type=2 #201
+2026/08/24-17:24:44.078 8893be Delete type=2 #199

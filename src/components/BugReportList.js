@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BugReportModal from './BugReportModal';
 import BugReportDetailModal from './BugReportDetailModal';
+import AdvancedRecorderModal from './AdvancedRecorderModal';
 import { BugCategoryBadge } from './BugClassifier';
 import TutorialPanel from './TutorialPanel';
 import Papa from 'papaparse';
@@ -389,9 +390,10 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   const [sortDir, setSortDir] = useState('desc');
   const [selected, setSelected] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showRecorder, setShowRecorder] = useState(false);
   const [editingBug, setEditingBug] = useState(null);
   const [detailBug, setDetailBug] = useState(null);
-
+  const [recorderPrefill, setRecorderPrefill] = useState(null);
   // --- Plane Integration State ---
   const [planeConfig, setPlaneConfig] = useState(null);
   const [transferringIds, setTransferringIds] = useState([]);
@@ -926,13 +928,24 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
             </button>
           )}
           {role !== 'viewer' && (
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => { setEditingBug(null); setShowModal(true); }}
-              disabled={bulkTransferring}
-            >
-              + Tambah Bug
-            </button>
+            <>
+              {isDesktop && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowRecorder(true)}
+                  style={{ background: '#f8fbff', borderColor: '#007bff', color: '#007bff' }}
+                >
+                  🎥 Record Bug
+                </button>
+              )}
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => { setEditingBug(null); setShowModal(true); }}
+                disabled={bulkTransferring}
+              >
+                + Tambah Bug
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1219,14 +1232,46 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
         </table>
       </div>
 
+      <AdvancedRecorderModal
+        isOpen={showRecorder}
+        onClose={() => setShowRecorder(false)}
+        onSave={(data) => {
+          console.log("Evidence Data:", data);
+          setShowRecorder(false);
+          
+          let parsedLogs = [];
+          try {
+            parsedLogs = JSON.parse(data.network_logs || '[]');
+          } catch(e){}
+
+          const logSummary = parsedLogs.length > 0 
+            ? `\n\n--- Network Logs (${parsedLogs.length} intercepted) ---\n` + parsedLogs.map(l => {
+                let text = `[${l.type === 'response' ? 'RES' : 'REQ'}] ${l.url}`;
+                if (l.status) text += ` (Status: ${l.status})`;
+                if (l.response_body) {
+                  const bodySnippet = l.response_body.length > 300 ? l.response_body.substring(0, 300) + '...' : l.response_body;
+                  text += `\n   -> Body: ${bodySnippet}`;
+                }
+                return text;
+              }).join('\n')
+            : '';
+
+          setRecorderPrefill({
+            evidence_url: data.video_evidence,
+            actual_behavior: "Terdapat masalah sesuai rekaman video." + logSummary
+          });
+          setShowModal(true);
+        }}
+      />
+
       {showModal && (
         <BugReportModal
           bug={editingBug}
           projects={projects}
-          prefillData={editingBug ? null : prefillData}
+          prefillData={editingBug ? null : (recorderPrefill || prefillData)}
           transferLabel={editingBug ? null : transferLabel}
           onSave={handleSaveBug}
-          onClose={() => { setShowModal(false); setEditingBug(null); if (onClearPrefill) onClearPrefill(); }}
+          onClose={() => { setShowModal(false); setEditingBug(null); setRecorderPrefill(null); if (onClearPrefill) onClearPrefill(); }}
         />
       )}
       {detailBug && (

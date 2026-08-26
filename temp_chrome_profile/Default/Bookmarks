@@ -1,0 +1,70 @@
+{
+   "checksum": "40208b32d2b686d0c3dba1fe77faa5e8",
+   "roots": {
+      "bookmark_bar": {
+         "children": [  ],
+         "date_added": "13432022417009159",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Bookmarks Bar",
+         "type": "folder"
+      },
+      "other": {
+         "children": [ {
+            "date_added": "13412661475052397",
+            "date_last_used": "0",
+            "guid": "2843eba8-483b-475e-bd1a-7f075ab68c8f",
+            "id": "5",
+            "meta_info": {
+               "power_bookmark_meta": ""
+            },
+            "name": "",
+            "type": "url",
+            "url": "https://dev-ats-ranchmarket.jobseeker.software/Candidate_Search/candidate_match?vacancy=hpVpl41n"
+         }, {
+            "date_added": "13420020659651102",
+            "date_last_used": "0",
+            "guid": "862ac989-7e7e-4839-afaf-8e1891d2dbb4",
+            "id": "6",
+            "meta_info": {
+               "power_bookmark_meta": ""
+            },
+            "name": "Jobseeker Company - Website – Figma",
+            "type": "url",
+            "url": "https://www.figma.com/design/0TkayoAvhfy4GcbuIYWHJd/Jobseeker-Company---Website?node-id=13043-3214&p=f&t=JiW39Xh9miWbZL8F-0"
+         }, {
+            "date_added": "13426743223853282",
+            "date_last_used": "0",
+            "guid": "53caea20-ec69-44eb-93b9-013e740e1eaa",
+            "id": "7",
+            "meta_info": {
+               "power_bookmark_meta": ""
+            },
+            "name": "UAT - Google Sheets",
+            "type": "url",
+            "url": "https://docs.google.com/spreadsheets/d/1F72tB2p7fLw0CeXhFzz1M55oP3sp3PV86iSGtK9V_Ho/edit?gid=376851457#gid=376851457"
+         } ],
+         "date_added": "13432022417009159",
+         "date_last_used": "0",
+         "date_modified": "13426743223853282",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Other Bookmarks",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13432022417009159",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Mobile Bookmarks",
+         "type": "folder"
+      }
+   },
+   "sync_metadata": "CpYCCvUBCIiBAhLuASAAkgHZAQrWAQoOY2hyb21lX3N5bmNfYm0SBTUxIWJtGhIJQ436JsRZBgARQ436JsRZBgAiNAn/PtgmxFkGABADGYXLWmNhxvW1IAEqHDUxIWJtL2ZkOjkxNjM3MjM1NTk0Njg4OTMxNjEiNAn/PtgmxFkGABADGYXLWmNhxvW1IAEqHDUxIWJtL2ZkOjkxNjM3MjM1NTk0Njg4OTMxNjEiNAn/PtgmxFkGABADGYXLWmNhxvW1IAEqHDUxIWJtL2ZkOjkxNjM3MjM1NTk0Njg4OTMxNjEpykT7JsRZBgDqAQwIvqmv1AYQ8MGWtgISACoYdFFiei9VaFVFL1dzZG0zQTVkQnhsdz09SAMSwwEIAxK+AQocbmpnRHU4OGVDcnZYcDg2cEQ3ZkhHY3FGcDg4PRJmWjpBRHF0QVp4TlJSN1VyTXNHMFdUSHFRZG16TmlDczFzT20rYlVqNFg0TUpZNlU3d01kTFk4QXg3K0FjU1U3d0p2c2VFTE00bU9McERFZWFGY2krL0c0aVZ2VWN6VGJuMDZHdz09GAAgACgAMP/94LbCuJYDOABAAEoceXpOQjAxY241NEE3Y1JVMHVUKy9QZ21UdFVvPVoAZQAAAAASwwEIAhK+AQocWWNTVG9udkVTUHdxQ3M0TDJjclZodjY4TDk4PRJmWjpBRHF0QVp3TjBTUFZ0WGZNbldvZnV0Tnk2OVFtMWNRcjJEdDRCVU9BQnBlN082eHZjVXpnM0hkNzB6SDF4NUhWbElTc0VnWlgyZGg4QjFMeGF3d3BhamQxd1Q4azIrd2Q3UT09GAAgACgAMP/94LbCuJYDOABAAEocb1BWa2h3QlJiVjY1S0NXUjIrSU9OSFdvT3U4PVoAZQAAAAAS7AEIBxLnAQocWjJKc1dvVGhPTTNaZi83cWNPRU9ENlJpazlNPRJmWjpBRHF0QVp4QVVqeEZnQWIxY2lSdk1lRUVSK0dXbFVIZHRYdit6aEJkU2llZ1RyaEVhVytTdlRWbFFrWStHM2hyTHhNTUcvazJNMmY1YVp5TCthYk1qdXArcDdWcHNPT2pnQT09GAAgACgAMI+7g/i3ppYDOLT8sLzvM0C0/LC87zNKHHFnUXJqQ2JZUC9OazBUNlhWQU1GaDErL3I2WT1aHyId3HArK1BvbmxGaHo1Z0JOMmdBMHptdnVCQ0lYZz1lhPo0uhKrAQgBEqYBChx5eEovNmZ2a2VjcjdrcDVFUXpCNHRXTHBkYkU9Ek5aOkFEcXRBWnh2QzdRWnpLL0s2SVBNR1BXdlJhNlAxUklHU1FWS0t6eitsZDVUNEFac3ZCdUZDNS9vRGNma3hPVzJ6b2MzczN5QlIxOHQYACAAKAAw//3gtsK4lgM4AEAAShxhUkNXTGdoRjliNUlucUtJRHZ1Si9qdlFrRmM9WgBlAAAAABLsAQgGEucBChxHeC8zL00wQmZnR0pLNlJTdVVqVE1ENEx1VjQ9EmZaOkFEcXRBWnhBVWp4RmdBYjFjaVJ2TWVFRVIrR1dKZlR1b2FISGpFNUVTNEtJOG8wcWsvWkpHQ0dQQ0x4OHFaOW9VQ2ZUcko3L1F5Y2x6R2VlNnREazVnOTR1dE1QaEJ1WmV3PT0YACAAKAAwq/nwnpzbkwM445vottYzQOOb6LbWM0occGtSOG4wVjlBci9xV1Q0YkFSN0JERklrRm44PVofIh25bDY4STRsOEhnL2x6KzVWMFYwSm5FN0sydzNVPWWCa7NDEusBCAUS5gEKHEhYQ1E5TURYUEt4a0Z6VldpWklReDFYdW5TQT0SZlo6QURxdEFaeEFVanhGZ0FiMWNpUnZNZUVFUitHV1pLSjdjTVhQRFprUUxnM1NrUGxKakxUSThmdEtxTGtUY0thK29mUVFMMjlJcDJjRHY2UG5CWFBha0MwSFJYTWV3UUhtS2c9PRgAIAAoADCY25+ThYWSAziTnteBuzNAk57XgbszShw2bDVFT2dkd0Z6cjRDZ1JQYVV4anVIYlJxd3c9Wh4iHHNob3dkSWRyZEFnaFBtbDBZdEw0MlpLR3Zqdz1lAAAAADABOAA=",
+   "version": 1
+}

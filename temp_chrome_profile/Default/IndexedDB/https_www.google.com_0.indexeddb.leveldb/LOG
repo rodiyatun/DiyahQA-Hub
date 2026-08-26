@@ -1,0 +1,49 @@
+2026/08/24-16:42:46.133 8893be Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_www.google.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-16:42:46.134 8893be Recovering log #103
+2026/08/24-16:42:46.134 8893be Reusing old log /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_www.google.com_0.indexeddb.leveldb/000103.log 
+2026/08/24-16:42:46.135 8893be Delete type=2 #101
+2026/08/24-16:42:46.147 8893be Level-0 table #108: started
+2026/08/24-16:42:46.148 8893be Level-0 table #108: 930 bytes OK
+2026/08/24-16:42:46.151 8893be Delete type=0 #103
+2026/08/24-16:42:46.152 8893be Manual compaction at level-0 from '\x00'\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00(\x00\x00\x00' @ 0 : 0; will stop at '\x00'\x00\x00\x05' @ 1287 : 1
+2026/08/24-16:42:46.152 8893be Compacting 1@0 + 1@1 files
+2026/08/24-16:42:46.154 8893be Generated table #109@0: 230 keys, 3235 bytes
+2026/08/24-16:42:46.154 8893be Compacted 1@0 + 1@1 files => 3235 bytes
+2026/08/24-16:42:46.155 8893be compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-16:42:46.156 8893be Delete type=2 #108
+2026/08/24-16:42:46.156 8893be Manual compaction at level-0 from '\x00'\x00\x00\x05' @ 1287 : 1 .. '\x00(\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-16:42:47.182 8893be Manual compaction at level-0 from '\x00(\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00)\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-16:42:48.136 8893c0 Level-0 table #111: started
+2026/08/24-16:42:48.139 8893c0 Level-0 table #111: 1178 bytes OK
+2026/08/24-16:42:48.140 8893c0 Delete type=2 #105
+2026/08/24-16:42:48.140 8893c0 Delete type=0 #107
+2026/08/24-16:42:48.141 8893bd Manual compaction at level-0 from '\x00)\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00*\x00\x00\x00' @ 0 : 0; will stop at '\x00)\x00\x00\x05' @ 1351 : 1
+2026/08/24-16:42:48.141 8893bd Compacting 1@0 + 1@1 files
+2026/08/24-16:42:48.142 8893bd Generated table #112@0: 236 keys, 3196 bytes
+2026/08/24-16:42:48.142 8893bd Compacted 1@0 + 1@1 files => 3196 bytes
+2026/08/24-16:42:48.143 8893bd compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-16:42:48.143 8893bd Delete type=2 #111
+2026/08/24-16:42:48.143 8893bd Manual compaction at level-0 from '\x00)\x00\x00\x05' @ 1351 : 1 .. '\x00*\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-16:50:27.311 8893c0 Manual compaction at level-0 from '\x00*\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00+\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-17:10:09.379 8893c0 Level-0 table #114: started
+2026/08/24-17:10:09.383 8893c0 Level-0 table #114: 1380 bytes OK
+2026/08/24-17:10:09.385 8893c0 Delete type=0 #110
+2026/08/24-17:10:09.385 8893c0 Delete type=2 #109
+2026/08/24-17:10:09.388 8893be Manual compaction at level-0 from '\x00+\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00,\x00\x00\x00' @ 0 : 0; will stop at '\x00+\x00\x00\x05' @ 1419 : 1
+2026/08/24-17:10:09.388 8893be Compacting 1@0 + 1@1 files
+2026/08/24-17:10:09.390 8893be Generated table #115@0: 255 keys, 3555 bytes
+2026/08/24-17:10:09.390 8893be Compacted 1@0 + 1@1 files => 3555 bytes
+2026/08/24-17:10:09.392 8893be compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-17:10:09.394 8893be Delete type=2 #114
+2026/08/24-17:10:09.394 8893be Manual compaction at level-0 from '\x00+\x00\x00\x05' @ 1419 : 1 .. '\x00,\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-17:11:29.314 8893be Level-0 table #117: started
+2026/08/24-17:11:29.318 8893be Level-0 table #117: 943 bytes OK
+2026/08/24-17:11:29.320 8893be Delete type=2 #112
+2026/08/24-17:11:29.320 8893be Delete type=0 #113
+2026/08/24-17:11:29.321 8893bd Manual compaction at level-0 from '\x00,\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00-\x00\x00\x00' @ 0 : 0; will stop at '\x00,\x00\x00\x05' @ 1452 : 1
+2026/08/24-17:11:29.321 8893bd Compacting 1@0 + 1@1 files
+2026/08/24-17:11:29.323 8893bd Generated table #118@0: 263 keys, 3623 bytes
+2026/08/24-17:11:29.323 8893bd Compacted 1@0 + 1@1 files => 3623 bytes
+2026/08/24-17:11:29.324 8893bd compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-17:11:29.324 8893bd Delete type=2 #117
+2026/08/24-17:11:29.324 8893bd Manual compaction at level-0 from '\x00,\x00\x00\x05' @ 1452 : 1 .. '\x00-\x00\x00\x00' @ 0 : 0; will stop at (end)

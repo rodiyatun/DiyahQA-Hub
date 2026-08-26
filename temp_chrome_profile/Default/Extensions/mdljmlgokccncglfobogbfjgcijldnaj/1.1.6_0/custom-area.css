@@ -1,0 +1,63 @@
+/* *{
+    box-sizing: border-box;
+} */
+.disable-scrolling {
+  height: 100%;
+  overflow: hidden;
+}
+
+#overlay-betterbugs {
+  /* background-color: white; */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99999;
+  /* opacity: 0.5; */
+  pointer-events: none;
+}
+
+#canvas-betterbugs {
+  cursor: crosshair;
+  z-index: 9950;
+  position: fixed;
+  top: 0;
+  left: 0;
+  user-select: none;
+}
+
+#close-button-betterbugs {
+  /* display: flex;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  width: 60px;
+  height: 60px;
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  font-size: 50px;
+  color: #000000;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  border: none;
+  overflow: hidden;
+  outline: none;
+  cursor: pointer;
+  z-index: 10001;
+  border-radius: 10px;
+  transition: background-color 0.25s;
+  visibility: hidden; */
+}
+
+#overlay-btn-betterbugs {
+  /* position: fixed;
+  bottom: 30px;
+  left: 30px;
+  border: none;
+  overflow: hidden;
+  outline: none;
+  cursor: pointer;
+  z-index: 10001;
+  height: 50px;
+  width: 50px; */
+}

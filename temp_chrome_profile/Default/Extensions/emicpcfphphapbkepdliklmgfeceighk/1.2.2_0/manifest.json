@@ -1,0 +1,26 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icons/icon128-grey.png",
+         "16": "icons/icon16-grey.png",
+         "48": "icons/icon48-grey.png"
+      },
+      "default_title": "Focus: The Elements - DOM Inspector & Editor"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "description": "DOM Inspector & Editor, inspect and edit HTML element styles directly on any page.",
+   "icons": {
+      "128": "icons/icon128.png",
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AnkI/Vu8YqXO3HcnpE40FLXurm9q/iagwRyivh90wlPozZI430gIRLAd/wGeXPhaK2RkCu+AI24ikeRX+80/hhOSdSH9cT+S5QmMiKBoiqOFfgUekcPGdQDPdTn/MFv74MkCCQBvOwKXWzM3e0dVO1phxy0ty3v4Y3YzQrlEhn32MXZleEPzd/ySrY5QQCkYLxFYBOxrdRAAFLc/rJ4RzOMI80FsBC4JLIWz5eyY71lrQARSRihyvoK5Yjrtz/sZa69pNIbUSGBCFZgokt9A64Rhwh2P6pNj0lJa0GleAyxe8J4NLBNuGBIx2ZgGVIKo+HYhRjKaFg6etfSUbROoQIDAQAB",
+   "manifest_version": 3,
+   "name": "Focus: The Elements - DOM Inspector & Editor",
+   "permissions": [ "scripting", "activeTab" ],
+   "short_name": "Focus: The Elements",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.2.2"
+}

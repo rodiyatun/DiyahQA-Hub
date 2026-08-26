@@ -1,0 +1,127 @@
+#html-inspector-popup {
+  position: fixed;
+  z-index: 2147483647;
+  background: #1e1e1e;
+  color: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-family: "Inter", "Roboto", "Arial", sans-serif;
+  max-width: 280px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transform: scale(0.95);
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+  pointer-events: auto;
+}
+
+#html-inspector-popup.visible {
+  transform: scale(1);
+  opacity: 1;
+}
+
+#html-inspector-popup h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #00bfff;
+}
+
+#html-inspector-popup .prop {
+  margin: 3px 0;
+  color: #fafafa;
+}
+
+.prop .prop-key {
+  color: #ff6b6b;
+}
+
+#html-inspector-popup input,
+#html-inspector-popup select {
+  width: 100%;
+  margin: 4px 0;
+  padding: 6px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #2c2c2c;
+  color: white;
+  font-size: 13px;
+}
+
+#html-inspector-popup button {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#apply {
+  background: #00bfff;
+  color: white;
+}
+
+#cancel {
+  background: #444;
+  color: white;
+}
+
+
+#html-inspector-popup {
+  pointer-events: auto;
+  transition: all 0.18s ease;
+  padding: 10px;
+  background: rgba(30, 30, 30, 0.97);
+  color: #fff;
+  border-radius: 10px;
+  font-family: "Inter", "Roboto", "Arial", sans-serif;
+  z-index: 2147483647;
+}
+
+#html-inspector-popup.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#html-inspector-popup h4 {
+  margin: 0;
+}
+
+#html-inspector-popup input,
+#html-inspector-popup select {
+  box-sizing: border-box;
+}
+
+.two-col {
+  display: flex;
+  gap: 8px;
+}
+
+.two-col .two-col-box {
+  flex: 1;
+}
+
+.edit-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  cursor: move;
+}
+
+.edit-box-hdg {
+  margin: 0;
+  font-size: 14px;
+  color: #00bfff;
+}
+
+.copy-style {
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+}

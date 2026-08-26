@@ -1,0 +1,10 @@
+2026/08/24-14:37:34.049 873212 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_www.figma.com_0.indexeddb.leveldb since it was missing.
+2026/08/24-14:37:34.054 873212 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_www.figma.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-14:37:34.150 873214 Level-0 table #5: started
+2026/08/24-14:37:34.152 873214 Level-0 table #5: 1270 bytes OK
+2026/08/24-14:37:34.153 873214 Delete type=0 #3
+2026/08/24-14:37:34.153 873211 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:37:35.932 873214 Level-0 table #7: started
+2026/08/24-14:37:35.933 873214 Level-0 table #7: 1917 bytes OK
+2026/08/24-14:37:35.934 873214 Delete type=0 #4
+2026/08/24-14:37:35.934 873211 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)

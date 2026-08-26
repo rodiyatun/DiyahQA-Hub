@@ -1,0 +1,5 @@
+2026/08/24-16:40:35.698 8893bd Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_accounts.google.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-16:40:35.698 8893bd Recovering log #92
+2026/08/24-16:40:35.699 8893bd Reusing old log /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_accounts.google.com_0.indexeddb.leveldb/000092.log 
+2026/08/24-16:40:35.699 8893bd Delete type=2 #90
+2026/08/24-16:40:35.708 8893be Manual compaction at level-0 from '\x00$\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00%\x00\x00\x00' @ 0 : 0; will stop at (end)

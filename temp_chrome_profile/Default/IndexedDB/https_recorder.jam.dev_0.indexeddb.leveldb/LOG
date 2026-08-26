@@ -1,0 +1,6 @@
+2026/08/24-13:21:10.138 866fe3 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_recorder.jam.dev_0.indexeddb.leveldb since it was missing.
+2026/08/24-13:21:10.153 866fe3 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_recorder.jam.dev_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-13:21:10.197 866fe3 Level-0 table #5: started
+2026/08/24-13:21:10.200 866fe3 Level-0 table #5: 1453 bytes OK
+2026/08/24-13:21:10.202 866fe3 Delete type=0 #3
+2026/08/24-13:21:10.202 866fdf Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)

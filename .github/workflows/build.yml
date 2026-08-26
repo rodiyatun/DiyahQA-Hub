@@ -43,7 +43,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_build: true
-          # release: true # Aktifkan ini jika ingin otomatis membuat Release di GitHub
+          release: true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

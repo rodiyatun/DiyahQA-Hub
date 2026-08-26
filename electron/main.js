@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const url = require('url');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 const { isConfigValid, maskApiKey, getTodoStateId, mapBugToPlanePayload, buildPlaneIssueUrl, planeRequest, sendGoogleChatNotification, getPlaneLabels, getPlaneModules, getPlaneCycles } = require('./planeHelpers');
 
@@ -560,7 +561,11 @@ function createWindow() {
   if (isDev) {
     win.loadURL('http://localhost:3000');
   } else {
-    win.loadFile(path.join(__dirname, '../build/index.html'));
+    win.loadURL(url.format({
+      pathname: path.join(__dirname, '../build/index.html'),
+      protocol: 'file:',
+      slashes: true
+    }));
   }
 }
 
@@ -4058,4 +4063,68 @@ ipcMain.handle('extract-live-styles', async (event, url) => {
       }
     });
   });
+});
+
+// ─── Advanced Recorder IPC ────────────────────────────────────────────────
+const recorderHelpers = require('./recorderHelpers');
+
+ipcMain.handle('launch-chrome-cdp', async (_, url) => {
+  try {
+    await recorderHelpers.launchChrome(url);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('start-network-log', async () => {
+  try {
+    await recorderHelpers.startNetworkLog();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('stop-network-log', async () => {
+  try {
+    const logs = await recorderHelpers.stopNetworkLog();
+    return { success: true, logs };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('compress-video', async (_, { inputPath, outputPath }) => {
+  try {
+    const finalPath = await recorderHelpers.compressVideo(inputPath, outputPath);
+    return { success: true, path: finalPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('upload-b2', async (_, { fileBuffer, fileName, mimeType, supabaseUrl, supabaseKey }) => {
+  try {
+    const fileUrl = await recorderHelpers.uploadToB2(fileBuffer, fileName, mimeType, supabaseUrl, supabaseKey);
+    return { success: true, url: fileUrl };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+const { desktopCapturer } = require('electron');
+ipcMain.handle('get-desktop-sources', async () => {
+  try {
+    const sources = await desktopCapturer.getSources({ types: ['window', 'screen'], fetchWindowIcons: true });
+    return sources.map(source => ({
+      id: source.id,
+      name: source.name,
+      // Pass the thumbnail as a data URL so we can show it in React
+      thumbnail: source.thumbnail.toDataURL()
+    }));
+  } catch (e) {
+    console.error('getSources error:', e);
+    throw e;
+  }
 });

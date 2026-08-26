@@ -1,0 +1,23 @@
+{
+   "author": "Gojko Adzic https://gojko.net",
+   "background": {
+      "service_worker": "extension.js",
+      "type": "module"
+   },
+   "description": "Right-click context menu to help with exploratory testing",
+   "homepage_url": "https://bugmagnet.org",
+   "icons": {
+      "128": "magnet.png",
+      "16": "magnet-16.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAheaEr2iDDTWNJEHuzSLvpzJYL58pm6viMV/VKyRTlMViKwA3A+ReAtmnIRkucE3vCGXWyHjITrq2lEI54Gm6L1ojHTHh4a22wGJ/vbYoUvogt+BaRAQ+NJQqvrBz3SYhbmIz8qkMsGMo87NjvZcIrE7wdbaAoXCa0VKYtHVc/W+ilu1+lIFgzhP53e04y4n9tNiWjNl2bf5KASyPo83tK51II2Fp0IMhCsq7l7Vs+wGx7XfpkRyYGDyMM/sMgf/WFI/PcuuxDhfjurGmc1F6V750Xq3kbuhmYyNh8KOVSCS9zuYma/i15YrEALV3+IF8kDSIdNJCWKrUU3hIEBWWCQIDAQAB",
+   "manifest_version": 3,
+   "name": "Bug Magnet",
+   "optional_permissions": [ "clipboardWrite", "clipboardRead" ],
+   "options_ui": {
+      "page": "options.html"
+   },
+   "permissions": [ "contextMenus", "storage", "activeTab", "scripting" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "4.0"
+}

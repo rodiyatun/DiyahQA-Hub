@@ -181,6 +181,14 @@ contextBridge.exposeInMainWorld('api', {
   // Automated UX
   extractLiveStyles: (url) => ipcRenderer.invoke('extract-live-styles', url),
 
+  // Advanced Recorder
+  launchChromeCdp: (url) => ipcRenderer.invoke('launch-chrome-cdp', url),
+  startNetworkLog: () => ipcRenderer.invoke('start-network-log'),
+  stopNetworkLog: () => ipcRenderer.invoke('stop-network-log'),
+  compressVideo: (data) => ipcRenderer.invoke('compress-video', data),
+  uploadB2: (data) => ipcRenderer.invoke('upload-b2', data),
+  getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
+
   // Deep linking
   onDeepLink: (callback) => ipcRenderer.on('deep-link', (_, url) => callback(url)),
   offDeepLink: () => ipcRenderer.removeAllListeners('deep-link'),

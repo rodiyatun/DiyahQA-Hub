@@ -1,0 +1,54 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "images/icon-128.png",
+         "16": "images/icon-16.png",
+         "32": "images/icon-32.png",
+         "48": "images/icon-48.png",
+         "64": "images/icon-64.png",
+         "96": "images/icon-96.png"
+      },
+      "default_title": "Fill All Inputs with Dummy Data"
+   },
+   "background": {
+      "service_worker": "src/service-worker.js",
+      "type": "module"
+   },
+   "commands": {
+      "fill_all_inputs": {
+         "description": "Fill all inputs"
+      },
+      "fill_this_form": {
+         "description": "Fill this form"
+      },
+      "fill_this_input": {
+         "description": "Fill this input"
+      }
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "js": [ "src/content-script.js" ],
+      "matches": [ "\u003Call_urls>" ]
+   } ],
+   "default_locale": "en",
+   "description": "A form filler that fills all inputs on a page with fake/dummy data.",
+   "icons": {
+      "128": "images/icon-128.png",
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png",
+      "64": "images/icon-64.png",
+      "96": "images/icon-96.png"
+   },
+   "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDlSNh/QUXYJkDg2vQMS8U4dNcxhwxWSxvi0QD45LV2I21c66r0Zt8vG1Be4bmPMYJHg7HWMinmAPCpD6BUWVigSQgW9EsavbyYN0d3L6hFEH0GS/SDrzw2BhEiCCQPeWnjI9NGvLJ3/cZkqgkSkdZ8Lw6DpIcVYDSy4KSdX5+cQQIDAQAB",
+   "manifest_version": 3,
+   "name": "Fake Filler",
+   "options_ui": {
+      "open_in_tab": true,
+      "page": "index.html"
+   },
+   "permissions": [ "contextMenus", "activeTab", "storage", "scripting" ],
+   "short_name": "Fake Filler",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "4.1.0"
+}

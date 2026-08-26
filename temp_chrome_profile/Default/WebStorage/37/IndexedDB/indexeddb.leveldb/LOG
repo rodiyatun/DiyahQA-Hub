@@ -1,0 +1,10 @@
+2026/08/24-14:37:39.151 873212 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/37/IndexedDB/indexeddb.leveldb since it was missing.
+2026/08/24-14:37:39.153 873212 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/37/IndexedDB/indexeddb.leveldb/MANIFEST-000001
+2026/08/24-14:37:39.159 873214 Level-0 table #5: started
+2026/08/24-14:37:39.160 873214 Level-0 table #5: 1315 bytes OK
+2026/08/24-14:37:39.161 873214 Delete type=0 #3
+2026/08/24-14:37:39.162 873214 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:37:42.523 873214 Level-0 table #7: started
+2026/08/24-14:37:42.525 873214 Level-0 table #7: 1926 bytes OK
+2026/08/24-14:37:42.527 873214 Delete type=0 #4
+2026/08/24-14:37:42.527 873211 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)

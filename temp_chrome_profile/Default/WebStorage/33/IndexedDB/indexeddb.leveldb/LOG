@@ -1,0 +1,20 @@
+2026/08/24-14:30:26.194 873211 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/33/IndexedDB/indexeddb.leveldb since it was missing.
+2026/08/24-14:30:26.196 873211 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/WebStorage/33/IndexedDB/indexeddb.leveldb/MANIFEST-000001
+2026/08/24-14:30:26.200 873214 Level-0 table #5: started
+2026/08/24-14:30:26.201 873214 Level-0 table #5: 1299 bytes OK
+2026/08/24-14:30:26.202 873214 Delete type=0 #3
+2026/08/24-14:30:26.202 873211 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:31:54.250 873220 Level-0 table #7: started
+2026/08/24-14:31:54.253 873220 Level-0 table #7: 1886 bytes OK
+2026/08/24-14:31:54.254 873220 Delete type=0 #4
+2026/08/24-14:31:54.255 873214 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:45:09.189 873214 Level-0 table #9: started
+2026/08/24-14:45:09.191 873214 Level-0 table #9: 915 bytes OK
+2026/08/24-14:45:09.192 873214 Delete type=0 #6
+2026/08/24-14:45:09.192 873211 Manual compaction at level-0 from '\x00\x05\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at '\x00\x05\x00\x00\x05' @ 165 : 1
+2026/08/24-14:45:09.192 873211 Compacting 1@0 + 1@1 files
+2026/08/24-14:45:09.193 873211 Generated table #10@0: 56 keys, 1368 bytes
+2026/08/24-14:45:09.193 873211 Compacted 1@0 + 1@1 files => 1368 bytes
+2026/08/24-14:45:09.194 873211 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-14:45:09.194 873211 Delete type=2 #9
+2026/08/24-14:45:09.194 873211 Manual compaction at level-0 from '\x00\x05\x00\x00\x05' @ 165 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -1,0 +1,80 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "appicon-128.png",
+         "16": "appicon-16.png",
+         "32": "appicon-32.png",
+         "48": "appicon-48.png"
+      },
+      "default_title": "BetterBugs: Create precise bug reports with 1-click"
+   },
+   "background": {
+      "service_worker": "background.bundle.js"
+   },
+   "commands": {
+      "_execute_action": {
+         "description": "Activate the extension",
+         "suggested_key": {
+            "default": "Alt+Shift+B"
+         }
+      },
+      "captureRewind": {
+         "description": "To capture rewind",
+         "suggested_key": {
+            "default": "Alt+Shift+R"
+         }
+      },
+      "startScreenRecording": {
+         "description": "To start screen recording",
+         "suggested_key": {
+            "default": "Alt+Shift+D"
+         }
+      },
+      "takeScreenshot": {
+         "description": "To capture screenshot",
+         "suggested_key": {
+            "default": "Alt+Shift+S"
+         }
+      }
+   },
+   "content_scripts": [ {
+      "all_frames": false,
+      "js": [ "logsListener.bundle.js" ],
+      "matches": [ "\u003Call_urls>" ],
+      "run_at": "document_start",
+      "world": "MAIN"
+   }, {
+      "all_frames": false,
+      "css": [ "custom-area.css" ],
+      "js": [ "content.bundle.js" ],
+      "matches": [ "\u003Call_urls>" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": {
+      "extension_page": "script-src 'self' https://www.googletagmanager.com; 'wasm-unsafe-eval'; https://apis.google.com; object-src 'self'"
+   },
+   "description": "One-click bug reports with all the context devs need",
+   "externally_connectable": {
+      "matches": [ "https://*.betterbugs.io/*", "https://betterbugs.io/*", "http://localhost:3000/*" ]
+   },
+   "host_permissions": [ "\u003Call_urls>", "*://*.google-analytics.com/*", "*://*.analytics.google.com/*", "*://*.google.com/*" ],
+   "icons": {
+      "128": "appicon-128.png",
+      "16": "appicon-16.png",
+      "32": "appicon-32.png",
+      "48": "appicon-48.png"
+   },
+   "incognito": "split",
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl9+RM96Gg3Ne7jtBLa7EbC1yfnM95kIXoQPKXmjm7M25lrBwG6ETK2OxUu1kxQbyTnfWsheEJD0SXjWfLZBa1CeAolb0tjRT7gpEtRy0e/HBNJE0Eu2L6F133oxMwiJWvSUpB9yRK3uecYOUPS/BYyn9o/k/xOoLuD88CL59c/q/e7Yjd5vwnslCnQddRhoBXsUERtOsEYCnJxeHL4WQ+CUjw8DaiQXLjxq1T/pbJJxMx4uTeWGB85taf3vdL8ZFynicaDLMVVDtcjpxMaKqEFig3VwJajTn5ljgohYRXSp01YL6FAZtz6vysnwYuHkj9ORrXPzufbo2sACCSPQCwwIDAQAB",
+   "manifest_version": 3,
+   "name": "BetterBugs: Create precise bug reports with 1-click",
+   "options_page": "options.html",
+   "permissions": [ "activeTab", "tabs", "unlimitedStorage", "storage", "cookies", "webRequest", "scripting", "webNavigation", "tabCapture", "browsingData", "offscreen", "management", "action" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.1.6",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>" ],
+      "resources": [ "worker.bundle.js", "logsListener.bundle.js", "*.png", "*.svg", "*.mp3", "ReactToastify.css", "camera.html" ],
+      "use_dynamic_url": true
+   } ]
+}

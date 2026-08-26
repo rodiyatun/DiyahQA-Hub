@@ -1,0 +1,11 @@
+2026/08/24-14:30:24.686 873211 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_app.openreplay.com_0.indexeddb.leveldb since it was missing.
+2026/08/24-14:30:24.689 873211 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_app.openreplay.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-14:30:24.694 873211 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:31:53.091 873211 Level-0 table #5: started
+2026/08/24-14:31:53.094 873211 Level-0 table #5: 2763 bytes OK
+2026/08/24-14:31:53.096 873211 Delete type=0 #3
+2026/08/24-14:31:53.097 873211 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:45:07.883 873212 Level-0 table #7: started
+2026/08/24-14:45:07.884 873212 Level-0 table #7: 972 bytes OK
+2026/08/24-14:45:07.886 873212 Delete type=0 #4
+2026/08/24-14:45:07.886 873212 Manual compaction at level-0 from '\x00\x05\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at (end)

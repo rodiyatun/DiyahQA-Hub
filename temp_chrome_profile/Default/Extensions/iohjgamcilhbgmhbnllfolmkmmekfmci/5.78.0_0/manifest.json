@@ -1,0 +1,65 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "assets/production-128x128.png",
+         "16": "assets/production-16x16.png",
+         "32": "assets/production-32x32.png",
+         "64": "assets/production-64x64.png"
+      },
+      "default_popup": "./popup.html",
+      "default_title": "Jam"
+   },
+   "background": {
+      "service_worker": "sw.js"
+   },
+   "commands": {
+      "_execute_action": {
+         "suggested_key": {
+            "default": "Ctrl+Shift+Y"
+         }
+      },
+      "new-recording-link": {
+         "description": "Request a recording"
+      },
+      "toggle-screenshot": {
+         "description": "Take screenshot",
+         "suggested_key": {
+            "default": "Ctrl+Shift+S"
+         }
+      },
+      "toggle-session-replay": {
+         "description": "Prompt instant replay",
+         "suggested_key": {
+            "default": "Ctrl+Shift+X"
+         }
+      },
+      "toggle-video": {
+         "description": "Start / stop tab recording",
+         "suggested_key": {
+            "default": "Ctrl+Shift+Space"
+         }
+      }
+   },
+   "description": "Jam is the smart screen recorder for software teams.",
+   "externally_connectable": {
+      "matches": [ "*://*.jam.dev/*", "*://*.jamtest.kitchen/*", "*://*.jam.test/*" ]
+   },
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "assets/production-128x128.png",
+      "16": "assets/production-16x16.png",
+      "32": "assets/production-32x32.png",
+      "64": "assets/production-64x64.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAh0KJv3PNs+fP6Svu0rwARNc9TPZJywyhV6+ckYReLyMx0BUamJ6hRIzluvZvCl+4rJhiu/hbcRHrqRJUBVShmXriiAJn+xPEwZ8+XFkX37/KRPHZygbtArfhiUQH6ie+srsTB9AoBsceScFlJtWU8js2QXm/BQzQyqFj2FhxiWRpzX/vumqYlzZPSfYdl7YCVLuxVGdJZHObBgt1BiVJDfB0amiOCzl9dw8m4abkzTBpp43m6I5kR09xkHA5ppTPGeyKzbxXKCEt86UwfsM1LiZCojhpP/+252Gg2HWzCn5JOC7R3tpp2hxbXiMiAdHggTeRgwwq4nrqTQS+dT7jWwIDAQAB",
+   "manifest_version": 3,
+   "minimum_chrome_version": "116",
+   "name": "Jam",
+   "permissions": [ "activeTab", "cookies", "offscreen", "scripting", "storage", "system.cpu", "system.memory", "tabCapture", "tabs", "webNavigation", "webRequest", "alarms", "unlimitedStorage" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "5.78.0",
+   "web_accessible_resources": [ {
+      "matches": [ "*://*/*", "file:///*" ],
+      "resources": [ "assets/*", "injected-scripts/*", "icom.html", "iui.html" ]
+   } ]
+}

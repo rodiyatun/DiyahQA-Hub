@@ -1,0 +1,21 @@
+2026/08/24-14:06:54.277 873211 Creating DB /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_chatgpt.com_0.indexeddb.leveldb since it was missing.
+2026/08/24-14:06:54.281 873211 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/IndexedDB/https_chatgpt.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/24-14:06:54.312 873214 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:09:40.915 873214 Level-0 table #5: started
+2026/08/24-14:09:40.917 873214 Level-0 table #5: 2723 bytes OK
+2026/08/24-14:09:40.919 873214 Delete type=0 #3
+2026/08/24-14:09:40.919 873211 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:11:19.598 873220 Level-0 table #7: started
+2026/08/24-14:11:19.600 873220 Level-0 table #7: 940 bytes OK
+2026/08/24-14:11:19.603 873220 Delete type=0 #4
+2026/08/24-14:11:19.605 873212 Manual compaction at level-0 from '\x00\x05\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/24-14:11:37.665 873214 Level-0 table #9: started
+2026/08/24-14:11:37.666 873214 Level-0 table #9: 2241 bytes OK
+2026/08/24-14:11:37.668 873214 Delete type=0 #6
+2026/08/24-14:11:37.669 873211 Manual compaction at level-0 from '\x00\x07\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x08\x00\x00\x00' @ 0 : 0; will stop at '\x00\x07\x00\x00\x05' @ 250 : 1
+2026/08/24-14:11:37.669 873211 Compacting 1@0 + 1@1 files
+2026/08/24-14:11:37.670 873211 Generated table #10@0: 59 keys, 1669 bytes
+2026/08/24-14:11:37.670 873211 Compacted 1@0 + 1@1 files => 1669 bytes
+2026/08/24-14:11:37.670 873211 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-14:11:37.671 873211 Delete type=2 #9
+2026/08/24-14:11:37.671 873211 Manual compaction at level-0 from '\x00\x07\x00\x00\x05' @ 250 : 1 .. '\x00\x08\x00\x00\x00' @ 0 : 0; will stop at (end)

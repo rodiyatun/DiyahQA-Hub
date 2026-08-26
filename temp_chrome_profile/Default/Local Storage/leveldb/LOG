@@ -1,0 +1,18 @@
+2026/08/24-16:42:44.056 889418 Reusing MANIFEST /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/24-16:42:44.058 889418 Recovering log #14
+2026/08/24-16:42:44.059 889418 Reusing old log /Users/diyahdo/testcase-app/testcase-app/temp_chrome_profile/Default/Local Storage/leveldb/000014.log 
+2026/08/24-16:43:44.038 88941b Level-0 table #18: started
+2026/08/24-16:43:44.043 88941b Level-0 table #18: 36731 bytes OK
+2026/08/24-16:43:44.047 88941b Delete type=0 #14
+2026/08/24-16:43:44.050 889418 Compacting 4@0 + 1@1 files
+2026/08/24-16:43:44.055 889418 Generated table #19@0: 116 keys, 34255 bytes
+2026/08/24-16:43:44.055 889418 Compacted 4@0 + 1@1 files => 34255 bytes
+2026/08/24-16:43:44.056 889418 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/24-16:43:44.056 889418 Delete type=2 #15
+2026/08/24-16:43:44.056 889418 Delete type=2 #12
+2026/08/24-16:43:44.057 889418 Delete type=2 #10
+2026/08/24-16:43:44.057 889418 Delete type=2 #8
+2026/08/24-16:43:44.057 889418 Delete type=2 #18
+2026/08/24-17:10:31.254 889418 Level-0 table #21: started
+2026/08/24-17:10:31.260 889418 Level-0 table #21: 26564 bytes OK
+2026/08/24-17:10:31.262 889418 Delete type=0 #17
