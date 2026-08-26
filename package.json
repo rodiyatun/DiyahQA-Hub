@@ -1,6 +1,6 @@
 {
   "name": "testcase-management",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "DiyahQA Hub - Test Case & Bug Report Management",
   "author": "Rodiyatun Mardiyah <mardiyahrodiyatun39@gmail.com>",
   "main": "electron/main.js",
