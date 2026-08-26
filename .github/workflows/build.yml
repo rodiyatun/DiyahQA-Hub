@@ -37,6 +37,7 @@ jobs:
         run: npm ci || npm install
 
       - name: Create .env file
+        shell: bash
         run: |
           cat << 'EOF' > .env
           ${{ secrets.ENV_FILE }}
