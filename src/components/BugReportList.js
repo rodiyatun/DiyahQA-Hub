@@ -399,6 +399,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
   const [transferringIds, setTransferringIds] = useState([]);
   const [bulkTransferring, setBulkTransferring] = useState(false);
   const [showPlaneSettings, setShowPlaneSettings] = useState(false);
+  const [showCliqSettings, setShowCliqSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'error'
   const lastSyncRef = useRef(null);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -705,6 +706,10 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
         
         const { error } = await supabase.from('bug_reports').insert([insertData]);
         if (error) throw error;
+
+        // Notifikasi Cliq (tidak diawait agar tidak memperlambat penyimpanan)
+        const projectName = projects?.find(p => String(p.id) === String(insertData.project_id))?.name || '';
+        window.api?.notifyCliqBug?.({ bug: insertData, projectName }).catch(() => {});
       }
       await loadBugReports();
       setShowModal(false);
@@ -916,6 +921,7 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>📤 Export CSV</button>
           <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>📄 Export PDF</button>
           <button className="btn btn-secondary btn-sm" onClick={handleOpenPlaneSettings}>⚙️ Plane</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowCliqSettings(true)}>💬 Cliq</button>
           <TutorialPanel menuKey="bugreports" />
           {readyBugs.length > 0 && (
             <button
@@ -1281,6 +1287,9 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           onEdit={() => { setEditingBug(detailBug); setDetailBug(null); setShowModal(true); }}
         />
       )}
+      {showCliqSettings && (
+        <CliqChannelsModal onClose={() => setShowCliqSettings(false)} />
+      )}
       {showPlaneSettings && (
         <PlaneSettingsModal
           onClose={() => setShowPlaneSettings(false)}
@@ -1301,6 +1310,183 @@ export default function BugReportList({ projects, selectedProject, prefillData, 
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ── CliqChannelsModal ─────────────────────────────────────────────
+// Kelola banyak channel/group Cliq tujuan notifikasi bug baru.
+function CliqChannelsModal({ onClose }) {
+  const [channels, setChannels] = useState([]);
+  const [name, setName] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null); // { ok, text }
+
+  async function load() {
+    try {
+      const list = await window.api.listCliqChannels();
+      setChannels(Array.isArray(list) ? list : []);
+    } catch {
+      setChannels([]);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function resetForm() {
+    setName('');
+    setWebhookUrl('');
+    setEditingId(null);
+  }
+
+  function startEdit(ch) {
+    setEditingId(ch.id);
+    setName(ch.name);
+    setWebhookUrl('');
+    setMessage(null);
+  }
+
+  async function handleSave() {
+    if (!name.trim()) {
+      setMessage({ ok: false, text: 'Nama channel wajib diisi' });
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const current = channels.find(c => c.id === editingId);
+      const res = await window.api.saveCliqChannel({
+        id: editingId,
+        name,
+        webhookUrl,
+        isActive: current ? current.isActive : true,
+      });
+      if (!res?.success) {
+        setMessage({ ok: false, text: res?.error || 'Gagal menyimpan channel' });
+        return;
+      }
+      resetForm();
+      await load();
+      setMessage({ ok: true, text: 'Channel disimpan' });
+    } catch (err) {
+      setMessage({ ok: false, text: 'Gagal menyimpan: ' + (err.message || err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleToggle(ch) {
+    const res = await window.api.saveCliqChannel({
+      id: ch.id,
+      name: ch.name,
+      webhookUrl: '',
+      isActive: !ch.isActive,
+    });
+    if (!res?.success) setMessage({ ok: false, text: res?.error || 'Gagal mengubah status' });
+    await load();
+  }
+
+  async function handleDelete(ch) {
+    if (!window.confirm(`Hapus channel "${ch.name}"?`)) return;
+    await window.api.deleteCliqChannel(ch.id);
+    if (editingId === ch.id) resetForm();
+    await load();
+  }
+
+  async function handleTest(ch) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await window.api.testCliqChannel(ch.id);
+      setMessage(res?.ok
+        ? { ok: true, text: `Tes terkirim ke "${ch.name}"` }
+        : { ok: false, text: `Gagal ke "${ch.name}": ${res?.error || 'tidak diketahui'}` });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 520, width: '100%' }}>
+        <div className="modal-header">
+          <h2 className="modal-title">💬 Notifikasi Zoho Cliq</h2>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+        </div>
+
+        <div style={{ padding: '0 0 8px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 0 }}>
+            Setiap bug baru akan dikirim ke semua channel yang aktif di bawah ini.
+          </p>
+
+          {channels.length === 0 && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+              Belum ada channel Cliq.
+            </div>
+          )}
+
+          {channels.map(ch => (
+            <div key={ch.id} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+              border: '1px solid var(--border)', borderRadius: 6, marginBottom: 6,
+              opacity: ch.isActive ? 1 : 0.55,
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{ch.name}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ch.webhookMasked || '—'} {ch.isActive ? '' : '· nonaktif'}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleTest(ch)}>Tes</button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleToggle(ch)}>
+                {ch.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => startEdit(ch)}>Edit</button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleDelete(ch)}>Hapus</button>
+            </div>
+          ))}
+
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 14, paddingTop: 14 }}>
+            <div className="form-group">
+              <label>{editingId ? 'Edit channel' : 'Tambah channel'}</label>
+              <input
+                type="text"
+                maxLength={100}
+                placeholder="Nama channel, contoh: Bug Report All Anggota"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Webhook URL {editingId && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(kosongkan jika tidak diubah)</span>}</label>
+              <input
+                type="password"
+                maxLength={2048}
+                placeholder="https://cliq.zoho.com/api/v2/channelsbyname/.../message?zapikey=..."
+                value={webhookUrl}
+                onChange={e => setWebhookUrl(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              {editingId && (
+                <button className="btn btn-ghost btn-sm" onClick={resetForm} disabled={busy}>Batal edit</button>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={busy}>
+                {editingId ? 'Simpan perubahan' : 'Tambah channel'}
+              </button>
+            </div>
+          </div>
+
+          {message && (
+            <div style={{ marginTop: 10, fontSize: 12, color: message.ok ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)' }}>
+              {message.text}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

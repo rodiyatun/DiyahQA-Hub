@@ -17,6 +17,13 @@ contextBridge.exposeInMainWorld('api', {
   // Dashboard
   getStats: (projectId) => ipcRenderer.invoke('get-stats', projectId),
 
+  // Cliq notifications
+  listCliqChannels:   ()     => ipcRenderer.invoke('cliq-list-channels'),
+  saveCliqChannel:    (data) => ipcRenderer.invoke('cliq-save-channel', data),
+  deleteCliqChannel:  (id)   => ipcRenderer.invoke('cliq-delete-channel', id),
+  testCliqChannel:    (id)   => ipcRenderer.invoke('cliq-test-channel', id),
+  notifyCliqBug:      (data) => ipcRenderer.invoke('cliq-notify-bug', data),
+
   // Bug Reports
   getBugReports: (projectId) => ipcRenderer.invoke('get-bug-reports', projectId),
   createBugReport: (data) => ipcRenderer.invoke('create-bug-report', data),

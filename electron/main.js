@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const { buildCliqPayload, buildCliqTestPayload, postToCliq, isValidCliqWebhook } = require('./cliqHelpers');
 const { isConfigValid, maskApiKey, getTodoStateId, mapBugToPlanePayload, buildPlaneIssueUrl, planeRequest, sendGoogleChatNotification, getPlaneLabels, getPlaneModules, getPlaneCycles } = require('./planeHelpers');
 
 // ─── Supabase (PostgreSQL Cloud Sync) ────────────────────────────────────────
@@ -381,6 +382,17 @@ function migratePlaneSchema() {
         project_id    TEXT NOT NULL DEFAULT '65975ef6-fe92-43b0-bc11-293d6fe5c666',
         base_url      TEXT NOT NULL DEFAULT 'https://api.plane.so',
         updated_at    TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    // Cliq notification channels (webhook URL disimpan terenkripsi)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cliq_channels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        webhook_enc TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
       );
     `);
 
@@ -2482,6 +2494,115 @@ function decryptVal(text) {
     return Buffer.concat([decipher.update(Buffer.from(encHex, 'hex')), decipher.final()]).toString('utf8');
   } catch { return ''; }
 }
+
+// ─── IPC: Cliq notification channels ──────────────────────────────────────────
+function maskWebhookUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.origin}/…${url.slice(-6)}`;
+  } catch {
+    return '';
+  }
+}
+
+function getActiveCliqChannels() {
+  return queryAll('SELECT id, name, webhook_enc FROM cliq_channels WHERE is_active = 1 ORDER BY id')
+    .map(r => ({ id: r.id, name: r.name, url: decryptVal(r.webhook_enc) }))
+    .filter(c => c.url);
+}
+
+ipcMain.handle('cliq-list-channels', () => {
+  try {
+    return queryAll('SELECT id, name, webhook_enc, is_active FROM cliq_channels ORDER BY id').map(r => ({
+      id: r.id,
+      name: r.name,
+      webhookMasked: maskWebhookUrl(decryptVal(r.webhook_enc)),
+      isActive: !!r.is_active,
+    }));
+  } catch {
+    return [];
+  }
+});
+
+ipcMain.handle('cliq-save-channel', (_, { id, name, webhookUrl, isActive }) => {
+  try {
+    const cleanName = (name || '').trim();
+    const cleanUrl = (webhookUrl || '').trim();
+    const active = isActive === false ? 0 : 1;
+
+    if (!cleanName) return { success: false, error: 'Nama channel wajib diisi' };
+
+    if (id) {
+      // Saat edit, URL kosong berarti pakai URL yang sudah tersimpan
+      if (cleanUrl) {
+        if (!isValidCliqWebhook(cleanUrl)) {
+          return { success: false, error: 'URL webhook Cliq tidak valid (harus https dan domain Zoho)' };
+        }
+        db.run('UPDATE cliq_channels SET name = ?, webhook_enc = ?, is_active = ? WHERE id = ?',
+          [cleanName, encryptVal(cleanUrl), active, id]);
+      } else {
+        db.run('UPDATE cliq_channels SET name = ?, is_active = ? WHERE id = ?', [cleanName, active, id]);
+      }
+    } else {
+      if (!isValidCliqWebhook(cleanUrl)) {
+        return { success: false, error: 'URL webhook Cliq tidak valid (harus https dan domain Zoho)' };
+      }
+      db.run('INSERT INTO cliq_channels (name, webhook_enc, is_active) VALUES (?, ?, ?)',
+        [cleanName, encryptVal(cleanUrl), active]);
+    }
+    saveDB();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('cliq-delete-channel', (_, id) => {
+  try {
+    db.run('DELETE FROM cliq_channels WHERE id = ?', [id]);
+    saveDB();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('cliq-test-channel', async (_, id) => {
+  const row = queryOne('SELECT name, webhook_enc FROM cliq_channels WHERE id = ?', [id]);
+  if (!row) return { ok: false, error: 'Channel tidak ditemukan' };
+  const url = decryptVal(row.webhook_enc);
+  return postToCliq(url, buildCliqTestPayload(row.name));
+});
+
+/**
+ * Dipanggil renderer setelah bug baru berhasil disimpan.
+ * Mengirim ke semua channel aktif secara paralel; kegagalan tidak memblokir penyimpanan.
+ */
+ipcMain.handle('cliq-notify-bug', async (_, { bug, projectName }) => {
+  try {
+    const channels = getActiveCliqChannels();
+    if (!channels.length) return { sent: 0, failed: 0 };
+
+    const payload = buildCliqPayload(bug || {}, projectName || '');
+    const results = await Promise.allSettled(channels.map(c => postToCliq(c.url, payload)));
+
+    let sent = 0;
+    let failed = 0;
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value.ok) {
+        sent++;
+      } else {
+        failed++;
+        const reason = r.status === 'fulfilled' ? r.value.error : r.reason?.message;
+        console.warn(`[Cliq] Gagal kirim ke "${channels[i].name}": ${reason}`);
+      }
+    });
+    return { sent, failed };
+  } catch (e) {
+    console.warn('[Cliq] Notifikasi gagal:', e.message);
+    return { sent: 0, failed: 1 };
+  }
+});
 
 ipcMain.handle('get-environments', (_, projectId) => {
   if (!db) return [];
