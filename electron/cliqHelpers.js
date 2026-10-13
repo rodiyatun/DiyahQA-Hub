@@ -23,26 +23,24 @@ const clip = (v, max = CLIQ_TEXT_LIMIT) => {
   return s.length > max ? s.slice(0, max) + '…' : s;
 };
 
+const CLIQ_URL_HINT =
+  'URL webhook Cliq tidak valid. Gunakan URL Incoming Webhook dari Cliq, ' +
+  'formatnya https://cliq.zoho.com/api/v2/channelsbyname/.../message?zapikey=...';
+
 /**
- * Webhook Cliq harus HTTPS dan berada di domain Zoho (cliq.zoho.com, .in, .eu, dst).
+ * Webhook Cliq harus HTTPS, host cliq.zoho.<tld>, dan path /api/v2/.
  */
 function isValidCliqWebhook(url) {
   try {
     const u = new URL(String(url || '').trim());
-    return u.protocol === 'https:' && /(^|\.)zoho\.[a-z.]+$/i.test(u.hostname);
+    return (
+      u.protocol === 'https:' &&
+      /^cliq\.zoho\.(com|eu|in|com\.au|com\.cn|jp|ca|sa)$/i.test(u.hostname) &&
+      u.pathname.startsWith('/api/v2/')
+    );
   } catch {
     return false;
   }
-}
-
-function formatWib(value) {
-  const d = value ? new Date(value) : new Date();
-  const safe = isNaN(d.getTime()) ? new Date() : d;
-  return safe.toLocaleString('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Jakarta',
-  }) + ' WIB';
 }
 
 /**
