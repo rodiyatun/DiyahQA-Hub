@@ -36,7 +36,7 @@ function isValidCliqWebhook(url) {
     return (
       u.protocol === 'https:' &&
       /^cliq\.zoho\.(com|eu|in|com\.au|com\.cn|jp|ca|sa)$/i.test(u.hostname) &&
-      u.pathname.startsWith('/api/v2/')
+      /^(\/company\/\d+)?\/api\/v2\//.test(u.pathname)
     );
   } catch {
     return false;
