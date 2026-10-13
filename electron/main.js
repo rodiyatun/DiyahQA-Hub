@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-const { buildCliqPayload, buildCliqTestPayload, postToCliq, isValidCliqWebhook } = require('./cliqHelpers');
+const { buildCliqPayload, buildCliqTestPayload, postToCliq, isValidCliqWebhook, CLIQ_URL_HINT } = require('./cliqHelpers');
 const { isConfigValid, maskApiKey, getTodoStateId, mapBugToPlanePayload, buildPlaneIssueUrl, planeRequest, sendGoogleChatNotification, getPlaneLabels, getPlaneModules, getPlaneCycles } = require('./planeHelpers');
 
 // ─── Supabase (PostgreSQL Cloud Sync) ────────────────────────────────────────
@@ -2536,7 +2536,7 @@ ipcMain.handle('cliq-save-channel', (_, { id, name, webhookUrl, isActive }) => {
       // Saat edit, URL kosong berarti pakai URL yang sudah tersimpan
       if (cleanUrl) {
         if (!isValidCliqWebhook(cleanUrl)) {
-          return { success: false, error: 'URL webhook Cliq tidak valid (harus https dan domain Zoho)' };
+          return { success: false, error: CLIQ_URL_HINT };
         }
         db.run('UPDATE cliq_channels SET name = ?, webhook_enc = ?, is_active = ? WHERE id = ?',
           [cleanName, encryptVal(cleanUrl), active, id]);
@@ -2545,7 +2545,7 @@ ipcMain.handle('cliq-save-channel', (_, { id, name, webhookUrl, isActive }) => {
       }
     } else {
       if (!isValidCliqWebhook(cleanUrl)) {
-        return { success: false, error: 'URL webhook Cliq tidak valid (harus https dan domain Zoho)' };
+        return { success: false, error: CLIQ_URL_HINT };
       }
       db.run('INSERT INTO cliq_channels (name, webhook_enc, is_active) VALUES (?, ?, ?)',
         [cleanName, encryptVal(cleanUrl), active]);
